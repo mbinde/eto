@@ -1,0 +1,166 @@
+<?php
+
+function student_install() {
+  drupal_install_schema('student');
+}
+
+function student_uninstall() {
+  drupal_uninstall_schema('student');
+}
+
+
+function student_schema() {
+  $schema['eto_student_application'] = array
+    (
+     'description' => 'Student Application',
+     'fields' => array (
+			'application_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'status' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'terms_and_conditions_agreement' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'created' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'changed' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('application_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      'status' => array('status'),
+      ),
+     );
+  $schema['eto_student_profile'] = array
+    (
+     'description' => 'Profile of a student',
+     'fields' => array (
+			'student_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'nid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'vid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'first_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'last_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'first_name_parent' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'last_name_parent' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'email_parent' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 1024,
+			 ),
+			'birthdate' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 ),
+			'grade' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'textbooks' => array
+			(
+			 'type' => 'text',
+			 ),
+			'notification_method' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 32,
+			 ),
+			'notification_address' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'created' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'changed' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('student_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      ),
+     );
+
+  return $schema;
+}
+     

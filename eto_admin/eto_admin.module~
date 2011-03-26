@@ -1,0 +1,91 @@
+<?php
+
+  /**********************************************************************
+   **********************************************************************
+   **
+   ** Utility Functions
+   **
+   **********************************************************************
+   **********************************************************************/
+
+
+function eto_image_load($fid) {
+  return db_fetch_object(db_query("SELECT * FROM {files} WHERE fid = %d",
+                                  $fid));
+}
+
+function print_r2($val){
+  echo '<pre>';
+  print_r($val);
+  echo  '</pre>';
+}
+
+function to_array($object) {
+  $a = array();
+  foreach ($object as $member=>$data) {
+    $a[$member] = $data;
+  }
+  return $a;
+}
+
+
+function _get_states($item = "") {
+  if ($item) {
+    $rows[0] = $item;
+  } else {
+    $rows = array();
+  }
+
+  return array_merge($rows, array(
+	       'AL'=>"Alabama",
+               'AK'=>"Alaska", 
+               'AZ'=>"Arizona", 
+               'AR'=>"Arkansas", 
+               'CA'=>"California", 
+               'CO'=>"Colorado", 
+               'CT'=>"Connecticut", 
+               'DE'=>"Delaware", 
+               'DC'=>"District Of Columbia", 
+               'FL'=>"Florida", 
+               'GA'=>"Georgia", 
+               'HI'=>"Hawaii", 
+               'ID'=>"Idaho", 
+               'IL'=>"Illinois", 
+               'IN'=>"Indiana", 
+               'IA'=>"Iowa", 
+               'KS'=>"Kansas", 
+               'KY'=>"Kentucky", 
+               'LA'=>"Louisiana", 
+               'ME'=>"Maine", 
+               'MD'=>"Maryland", 
+               'MA'=>"Massachusetts", 
+               'MI'=>"Michigan", 
+               'MN'=>"Minnesota", 
+               'MS'=>"Mississippi", 
+               'MO'=>"Missouri", 
+               'MT'=>"Montana",
+               'NE'=>"Nebraska",
+               'NV'=>"Nevada",
+               'NH'=>"New Hampshire",
+               'NJ'=>"New Jersey",
+               'NM'=>"New Mexico",
+               'NY'=>"New York",
+               'NC'=>"North Carolina",
+               'ND'=>"North Dakota",
+               'OH'=>"Ohio", 
+               'OK'=>"Oklahoma", 
+               'OR'=>"Oregon", 
+               'PA'=>"Pennsylvania", 
+               'RI'=>"Rhode Island", 
+               'SC'=>"South Carolina", 
+               'SD'=>"South Dakota",
+               'TN'=>"Tennessee", 
+               'TX'=>"Texas", 
+               'UT'=>"Utah", 
+               'VT'=>"Vermont", 
+               'VA'=>"Virginia", 
+               'WA'=>"Washington", 
+               'WV'=>"West Virginia", 
+               'WI'=>"Wisconsin", 
+               'WY'=>"Wyoming"));
+}

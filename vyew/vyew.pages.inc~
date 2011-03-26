@@ -1,0 +1,6 @@
+<?php
+
+function vyew_room($uid) {
+
+
+}

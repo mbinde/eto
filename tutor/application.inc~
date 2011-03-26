@@ -1,0 +1,488 @@
+<?php
+
+function _tutor_validate_permissions($uid) {
+  global $user;
+
+  if ($uid) {
+    // only allowable if this is us or we have proper permissions
+    if ( ! ( ($user->uid == $uid) || user_access("administer tutors") ) ) {
+      return 0;
+    } else {
+      return 1;
+    }
+  }
+}
+
+function _tutor_load_application_part($uid, $part) {
+  if ($part == "consent") {
+    return tutor_application_consent_load($uid);
+  } else if ($part == "profile") {
+    module_load_include("inc", "tutor", "profile");
+    return tutor_profile_load($uid);
+  } else if ($part == "contact") {
+    module_load_include("inc", "eto_admin", "contact");
+    return eto_contact_load($uid, 'CONTACT');
+  } else {
+    return 0;
+  }
+}
+
+function _tutor_validate_application_part($node, $part) {
+  if ($part == "consent") {
+    return tutor_application_consent_validate($node);
+  } else if ($part == "contact") {    
+    return 0; // if it was saved, it's validated
+  } else if ($part == "profile") {
+    module_load_include("inc", "tutor", "profile");
+    return tutor_profile_validate($node);
+  } else {
+    return 1;
+  }
+}
+
+
+/***************************************************************************
+ *
+ * application status page
+ *
+ ***************************************************************************/
+
+function tutor_application($uid = "") {
+  $output = "";
+  global $user;
+
+  if (!$uid) {
+    $mine = 1;
+    $uid = $user->uid;
+  } else {
+    $target_user = user_load($uid);
+  }
+
+  if (! _tutor_validate_permissions($uid)) {
+    return "Permission denied.";
+  }
+  // else
+
+  $app = _tutor_load_application_part($uid, 'consent');
+
+  if ($app->status == 1) {
+    // pending approval
+    if ($mine) {
+      $output .= "<p>Thank you for submitting your application.  We will get back to you as soon as possible.</p>";
+    } else {
+      $output .= "<p>This application has been submitted and is waiting for your approval.</p>";
+      $parts_status = _display_application_parts ($uid);
+      $output .= $parts_status['output'];
+      $output .= "<p>Once you have reviewed the application and made any changes, click below to promote this user to be a tutor.</p>";
+      $node = tutor_application_consent_load($uid);
+      $output .= drupal_get_form('tutor_application_approval_form', $node);
+    }
+  } else if ($app->status > 1) {
+    // already a tutor
+    if ($mine) {
+      $output .= "Permission denied.";
+    } else {
+      $output .= "<p><strong>This user is already a tutor.</strong>  Their application is included below if you wish to review any pieces of it.  Please note that the contact information and biography may have been changed since when they were submitted.</p>";
+      $parts_status = _display_application_parts ($uid);
+      $output .= $parts_status['output'];
+    }
+
+  } else {
+    if ($mine) { 
+      $output .= "<p>When you have completed all parts of the application process, you may submit your application.</p>";
+    } else {
+      $output .= "<p>Application status:</p>";
+    }
+    
+    $parts_status = _display_application_parts ($uid, $mine);
+    $output .= $parts_status['output'];
+    
+    if ($parts_status['exists'] == $parts_status['total']) {
+      // validate our nodes to make sure the important stuff is handled // FIXME
+      if ($parts_status['exists'] == $parts_status['completed']) {
+	if ($mine) {
+	  $output .= "Your application is complete!  Please review it and make any final changes.  After you submit it, you will not be able to change it again.";
+	} else {
+	  $output .= $target_user->name . "'s application is complete.  If you wish to submit it for them, please click the submit button below.";
+	}
+	$node = tutor_application_consent_load($uid);
+	$output .= drupal_get_form('tutor_application_submit_form', $node);
+      } else {
+	if ($mine) {
+	  $output .= "Please edit and finish the incomplete sections of your application.";
+	} else {
+	  $output .= "The application is still incomplete and cannot be submitted or approved yet.";
+	}
+      }
+    }
+  }
+
+  return $output;
+}
+
+function _display_application_parts ($uid, $mine = 0) {
+  $status = array();
+  
+  $parts = array('contact' => 'Contact Information',
+		 'profile' => 'Biographical Information',
+		 'consent' => 'Consent and Payment',
+		 );
+
+  $status['output'] .= "\n\n<table>\n";
+
+  
+  foreach ($parts as $key => $text) {
+    
+    $status['total'] ++;
+    
+    $data = _tutor_load_application_part($uid, $key);
+    if ($data) {
+      $status['exists'] ++;
+      $messages = _tutor_validate_application_part($data, $key);
+      if (! $messages) {
+	$status['completed'] ++;
+	$image = "<img src='/images/green-check.png' alt='Section completed' title='Section completed' width=24 height=24>";
+      } else {
+	$hover_text = implode("  ", $messages);
+	$image = "<img src='/images/in-progress.png' alt=\"$hover_text\" title=\"$hover_text\" width=24 height=24>";
+      }
+    } else {
+      $image = "<img src='/images/question-mark.png' alt='Section not yet started' title='Section not yet started' width=24 height=24>";
+    }
+    
+    if ($mine) {
+      $link = "user/tutor/application/$key";
+    } else {
+      $link = "user/$uid/tutor/application/$key";
+    }
+    $status['output'] .= "<tr>\n";
+    $status['output'] .= "<td>" . l('[edit]', $link) . "</td>";
+    $status['output'] .= "<td>$image</td>";
+    $status['output'] .= "<td>$text</td>";
+    $status['output'] .= "\n</tr>\n";
+  }
+  $status['output'] .= "</table>";
+
+
+  return $status;
+}
+
+
+/***************************************************************************
+ *
+ * final submission subsection
+ *
+ ***************************************************************************/
+
+function tutor_application_submit_form(&$form_state, $node) {
+  $form['uid'] = array (
+			    '#type' => 'hidden',
+			    '#value' => $node->uid,
+			    );
+  $form['submit'] = array (
+			   '#type' => 'submit',
+			   '#value' => 'Submit application',
+			   );
+  $form['#submit'] = array('tutor_application_submit_form_submit');
+  return $form;
+}
+
+function tutor_application_submit_form_submit($form, &$form_state) {
+  $node = tutor_application_consent_load($form_state['values']['uid']);
+  $node->status = 1;
+  tutor_application_consent_update(to_array($node));
+  drupal_set_message("Your application has been submitted successfully!  We will get back to you shortly.", "status");
+  $form_state['redirect'] = 'user/' . $form_state['values']['uid'] . '/tutor/application';
+}
+
+/***************************************************************************
+ *
+ * tutor approval subsection
+ *
+ ***************************************************************************/
+
+function tutor_application_approval_form(&$form_state, $node) {
+  $form['uid'] = array (
+			    '#type' => 'hidden',
+			    '#value' => $node->uid,
+			    );
+  $form['submit'] = array (
+			   '#type' => 'submit',
+			   '#value' => 'Approve this Tutor',
+			   );
+  $form['#submit'] = array('tutor_application_approval_form_submit');
+  return $form;
+}
+
+function tutor_application_approval_form_submit($form, &$form_state) {
+  $node = tutor_application_consent_load($form_state['values']['uid']);
+  $node->status = 2;
+  tutor_application_consent_update(to_array($node));
+  drupal_set_message("Tutor's application is approved and the tutor has been notified.", "status");
+  $form_state['redirect'] = 'user/' . $form_state['values']['uid'] . '/tutor/application';
+}
+
+
+/***************************************************************************
+ *
+ * contact subsection
+ *
+ ***************************************************************************/
+
+function tutor_application_contact ($uid = "") {
+  $output = "";
+  global $user;
+
+  if (!$uid) {
+    $uid = $user->uid;
+  }
+  if (! _tutor_validate_permissions($uid)) {
+    return "Permission denied.";
+  } 
+  // else
+
+  module_load_include('inc', 'eto_admin', 'contact');
+  $node = eto_contact_load($uid, 'CONTACT');
+
+  $output .= variable_get('eto_contact_form_help_text', '<h3>Please fill out the contact information below:</h3>');
+
+  $output .= drupal_get_form('eto_contact_form', $node, array('uid' => $uid, 'save' => 'Save this section', 'contact_type' => 'CONTACT'));
+
+  return $output;
+}
+
+
+
+/***************************************************************************
+ *
+ * profile subsection
+ *
+ ***************************************************************************/
+
+function tutor_application_profile ($uid = "") {
+  $output = "";
+  global $user;
+
+  if (!$uid) {
+    $uid = $user->uid;
+  }
+  if (! _tutor_validate_permissions($uid)) {
+    return "Permission denied.";
+  } 
+  // else
+
+  module_load_include('inc', 'tutor', 'profile');
+  $node = tutor_profile_load($uid);
+
+
+  $output .= variable_get('eto_tutor_profile_form_help_text', '<h3>Please fill out the information below:</h3>');
+
+  if ($node) {
+    $messages = _tutor_validate_application_part($node, 'profile');
+    if ($messages) {
+      $output .= "<div id='validate-messages'>";
+      $output .= implode('<br>', $messages);
+      $output .= "</div>";
+    }
+  }
+
+  $output .= drupal_get_form('tutor_profile_form', $node, array('uid' => $uid));
+
+  return $output;
+}
+
+
+
+/***************************************************************************
+ *
+ * consent subsection
+ *
+ ***************************************************************************/
+
+function tutor_application_consent($uid = "") {
+  $output = "";
+  global $user;
+
+  if (!$uid) {
+    $uid = $user->uid;
+  }
+
+  if (! _tutor_validate_permissions($uid)) {
+    return "Permission denied.";
+  }
+  // else
+  
+  $node = tutor_application_consent_load($uid);
+
+  $output .= variable_get('eto_tutor_consent_form_help_text', '<h3>Please fill out the information below:</h3>');
+
+  if ($node) {
+    $messages = _tutor_validate_application_part($node, 'consent');
+    if ($messages) {
+      $output .= "<div id='validate-messages'>";
+      $output .= implode('<br>', $messages);
+      $output .= "</div>";
+    }
+  }
+
+  $output .= drupal_get_form('tutor_application_consent_form', $node, array('uid' => $uid));
+
+  return $output;
+}
+
+/**
+ * Implementation of hook_form
+ */
+
+function tutor_application_consent_form(&$form_state, $node, $vars) {
+
+
+  $form['application_id'] = array (
+				   '#type' => 'hidden',
+				   '#value' => ($node->application_id ? $node->application_id : 0),
+				   );
+  $form['uid'] = array (
+			    '#type' => 'hidden',
+			    '#value' => ($node->uid ? $node->uid : $vars['uid']),
+			    );
+
+  $form['background_consent'] = array (
+				       '#type' => 'checkbox',
+				       '#title' => 'Do you consent to a background check?',
+				       '#default_value' => ($node->background_consent ? "checked" : ""),
+				       '#required' => TRUE,
+				       );
+  $form['contract_agreement'] = array (
+				       '#type' => 'checkbox',
+				       '#title' => 'Do you agree to the contract terms and conditions?',
+				       '#default_value' => ($node->contract_agreement ? "checked" : ""),
+				       '#required' => TRUE,
+				       );
+  $form['new_contract_agreement_fid'] = array (
+					       '#type' => 'image_upload_element',
+					       '#title' => 'Your digital signature image',
+					       '#description' => 'File must be 2MB or less.',
+					       '#default_value' => ($node->new_contract_agreement_fid
+								    ? eto_image_load($node->new_contract_agreement_fid)
+								    : eto_image_load($node->contract_agreement_fid)
+								    ),
+					       );
+
+  $form['ssn'] = array (
+			'#type' => 'textfield',
+			'#title' => 'Social Security Number or Employer Identification Number (for 1099)',
+			'#default_value' => $node->ssn,
+			'#required' => TRUE,
+			);
+
+  $form['save'] = array (
+			   '#type' => 'submit',
+			   '#value' => 'Save this section',
+			   );
+
+  $form['#submit'] = array('tutor_application_consent_form_submit');
+  
+
+  return $form;
+}
+
+
+function tutor_application_consent_validate ($node) {
+  // make sure we filled it out properly
+
+  $required_fields = array ('background_consent' => "check the background consent checkbox",
+			    'contract_agreement' => "check the contract agreement checkbox",
+			    'ssn' => "enter your social security number or employer identification number for tax purposes",
+			    );
+
+  $messages = array();
+
+  foreach ($required_fields as $f => $text) {
+    if (empty($node->$f)) {
+      $messages[] = 'You need to ' . $text;
+    }
+  }
+  return $messages;
+}
+
+
+
+
+function tutor_application_consent_form_submit($form, &$form_state) {
+
+  // insert if new, otherwise update
+  if ($form_state['values']['application_id'] > 0) {
+    tutor_application_consent_update($form_state['values']);
+  } else {
+    tutor_application_consent_insert($form_state['values']);
+  }
+
+  drupal_set_message("Your application has been saved successfully.  You can return at any point to update or submit it.", "status");
+  global $user;
+  if ($user->uid == $form_state['values']['uid']) {
+    $form_state['redirect'] = 'user/tutor/application';
+  } else {
+    $form_state['redirect'] = 'user/' . $form_state['values']['uid'] . '/tutor/application';
+  }
+
+}
+
+
+function tutor_application_consent_load($uid) {
+  $result = db_query("SELECT * FROM {eto_tutor_application} WHERE uid = %d",
+		     $uid);
+  return db_fetch_object($result);
+}
+
+
+function tutor_application_consent_insert($n) {
+  global $user;
+
+  $now = time();
+
+  db_query("INSERT INTO {eto_tutor_application}
+               (background_consent, contract_agreement, contract_agreement_fid, ssn,
+                uid, created, changed)
+            VALUES
+               (%d, %d, %d, '%s',
+                %d, %d, %d)",
+
+	   $n['background_consent'], $n['contract_agreement'], $n['new_contract_agreement_fid'], $n['ssn'],
+	   $n['uid'], $now, $now
+	   );
+
+  watchdog('applications', 
+	   "@user_name inserted a new tutor application (consent)",
+	   array("@user_name" => $user->name),
+	   WATCHDOG_NOTICE,
+	   l('view', 'user/' . $n['uid'] . 'tutor/application/consent')
+	   );
+}
+
+function tutor_application_consent_update($n) {
+  global $user;
+
+  db_query("UPDATE {eto_tutor_application} SET
+               background_consent = %d,
+               contract_agreement = %d,
+               contract_agreement_fid = %d,
+               ssn = '%s',
+               uid = %d,
+               status = %d,
+               changed = %d
+            WHERE
+               application_id = %s",
+	   $n['background_consent'], $n['contract_agreement'], $n['new_contract_agreement_fid'], $n['ssn'],
+	   $n['uid'], $n['status'], time(),
+	   $n['application_id']);
+
+
+  watchdog('applications', 
+	   "@user_name updated a new tutor application (consent)",
+	   array("@user_name" => $user->name),
+	   WATCHDOG_NOTICE,
+	   l('view', 'user/' . $n['uid'] . 'tutor/application/consent')
+	   );
+
+}
+

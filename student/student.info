@@ -1,0 +1,5 @@
+name = Student
+description = An individual student
+package = ETO
+core = 6.x
+version = "6.x-1.0"

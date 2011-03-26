@@ -1,0 +1,72 @@
+<?php
+
+function vyew_install() {
+  drupal_install_schema('vyew');
+}
+
+function vyew_uninstall() {
+  drupal_uninstall_schema('vyew');
+}
+
+
+function vyew_schema() {
+  $schema['eto_vyew_room'] = array
+    (
+     'description' => 'Profile of a vyew user',
+     'fields' => array (
+			'vyew_room_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'status' => array
+			(
+			 'type' => 'int',
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'vyew_username' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'vyew_pass' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'api_key' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'api_secret' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'room_title' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			),
+     'primary key' => array('vyew_room_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      ),
+     );
+
+  return $schema;
+
+}
+     

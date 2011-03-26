@@ -1,0 +1,54 @@
+<?php
+
+require_once("lib/VyewAPI.php");
+
+
+function _vyew() {
+  static $vyew;
+
+  if (! (is_object($vyew))) {
+    $api_key = "d43a9866b5";
+    $api_secret = "f2ea525865ce6cfb7f99";
+    $vyew = new VyewAPI($api_key, $api_secret);
+  }
+  return $vyew;
+}
+
+/*
+ * Implementation of hook_menu()
+ */
+
+function vyew_menu() {
+  $items['vyew'] = array (
+			  'title' => 'Vyew test',
+			  'page callback' => 'vyew_test',
+			  'access arguments' => array('administer nodes'),
+			  'type' => MENU_CALLBACK,
+			  );
+  return $items;
+}
+
+function vyew_test() {
+  $output = "";
+
+  $vyew = _vyew();
+
+  $res=$vyew->create('Test Meeting');
+
+  $output .= "Hi<P>";
+  print_r2($res);
+  return $output;
+  
+
+}
+
+/*
+ * Takes a student ID, returns the room for them
+ */
+
+function get_student_room($student_id) {
+  if (!$student_id) { return ""; }
+
+  
+
+}

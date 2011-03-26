@@ -1,0 +1,5 @@
+name = ETO Admin
+description = Administration tools for EliteTutorsOnline
+package = ETO
+core = 6.x
+version = "6.x-1.0"

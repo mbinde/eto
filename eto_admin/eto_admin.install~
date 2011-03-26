@@ -1,0 +1,91 @@
+function eto_admin_schema() {
+  $schema['eto_address'] = array
+    (
+     'description' => 'Generic Address Information',
+     'fields' => array (
+			'first_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'last_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'address_1' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'address_2' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'address_3' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'city' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'state' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'zip' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'home_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'cell_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'other_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 )
+			)
+     );
+  $schema['eto_address_relationships'] = array
+    (
+     'description' => 'Tutor References',
+     'fields' => array (
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'address_id' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'type' => arrray
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			)
+     );
+
+}

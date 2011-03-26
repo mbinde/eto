@@ -1,0 +1,30 @@
+<?php
+
+function vyew_edit_user_room($uid) {
+  $output = "";
+
+  $target_user = user_load($uid);
+  if (!$target_user) {
+    $target_user = user_load(array('name' => $uid));
+    if (!$target_user) {
+      return drupal_not_found();
+    } else {
+      $uid = $target_user->uid;
+    }
+  }
+
+  $output .= "<p>To get the API key for a user:</p>";
+  $output .= "<ol>";
+  $output .= "<li>Create an email address for the user that you can access.</li>";
+  $output .= "<li>Sign them up for Vyew: " . l('https://vyew.com/go/register', 'https://vyew.com/go/register', array('absolute' => TRUE,
+														     'attributes' => array('target' => '_blank')));
+  $output .= "<li>Get their API key and secret: " . l('http://vyew.com/api/public/', 'http://vyew.com/api/public/', array('absolute' => TRUE,
+															  'attributes' => array('target' => '_blank')));
+  $output .= "</ol>";
+
+  $output .= drupal_get_form('vyew_edit_user_room_form'
+
+  return $output;
+
+}
+

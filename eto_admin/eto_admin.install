@@ -1,0 +1,169 @@
+<?php
+
+function eto_admin_install() {
+  drupal_install_schema('eto_admin');
+}
+
+function eto_admin_uninstall() {
+  drupal_uninstall_schema('eto_admin');
+}
+
+function eto_admin_schema() {
+
+  $schema['eto_contact'] = array
+    (
+     'description' => 'Generic Contact Information',
+     'fields' => array (
+			'contact_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'first_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'last_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'address_1' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'address_2' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'address_3' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'city' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'state' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'zip' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'day_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'evening_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'cell_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'other_phone' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'created' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'changed' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('contact_id'),
+     );
+  $schema['eto_contact_relationships'] = array
+    (
+     'description' => 'Contact Relationships',
+     'fields' => array (
+			'relationship_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'contact_id' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'contact_type' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 64,
+			 ),
+			),
+     'primary key' => array('relationship_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid', 'contact_type'),
+      'contact_id' => array('contact_id', 'contact_type'),
+      ),
+     );
+
+  $schema['eto_photo'] = array
+    (
+     'description' => 'Photo storage',
+     'fields' => array (
+			'photo_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'file_id' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('photo_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      ),
+     );
+
+  return $schema;
+}

@@ -1,0 +1,137 @@
+<?php
+
+/**
+ * Implementation of hook_menu()
+ */
+
+function tutor_menu() {
+
+  /**********************************************************************
+   **********************************************************************
+   **
+   ** Application stuff
+   **
+   **********************************************************************
+   **********************************************************************/
+
+
+  $items['user/tutor/application'] = array (
+					    'title' => 'Tutor Application',
+					    'page callback' => 'tutor_application',
+					    'access arguments' => array('apply to be a tutor'),
+					    'file' => 'application.inc',
+					    'type' => MENU_NORMAL_ITEM,
+					    );
+  $items['users/%/tutor/application'] = array (
+					      'title callback' => 'title_callback_tutor_application',
+					      'title arguments' => array(1),
+					      'page callback' => 'tutor_application',
+					      'page arguments' => array(1),
+					      'access arguments' => array('apply to be a tutor'),
+					      'file' => 'application.inc',
+					      'type' => MENU_NORMAL_ITEM,
+					      );
+
+  $items['user/tutor/application/profile'] = array (
+						'title' => 'Tutor Application: Biographical Information',
+						'page callback' => 'tutor_application_profile',
+						'access arguments' => array('access content'),
+						'file' => 'application.inc',
+						'type' => MENU_CALLBACK,
+						);
+  $items['users/%/tutor/application/profile'] = array (
+						  'title callback' => 'title_callback_tutor_application',
+						  'title arguments' => array(1, "Biographical Information"),
+						  'page callback' => 'tutor_application_profile',
+						  'page arguments' => array(1),
+						  'access arguments' => array('access content'),
+						  'file' => 'application.inc',
+						  'type' => MENU_CALLBACK,
+						  );
+  $items['user/tutor/application/consent'] = array (
+						    'title' => 'Tutor Application: Consent and Payment',
+						    'page callback' => 'tutor_application_consent',
+						    'access arguments' => array('access content'),
+						    'file' => 'application.inc',
+						    'type' => MENU_CALLBACK,
+						    );
+  $items['users/%/tutor/application/consent'] = array (
+						      'title callback' => 'title_callback_tutor_application',
+						      'title arguments' => array(1, "Consent and Payment"),
+						      'page callback' => 'tutor_application_consent',
+						      'page arguments' => array(1),
+						      'access arguments' => array('access content'),
+						      'file' => 'application.inc',
+						      'type' => MENU_CALLBACK,
+						      );
+  $items['user/tutor/application/contact'] = array (
+						    'title' => 'Tutor Application: Contact Information',
+						    'page callback' => 'tutor_application_contact',
+						    'access arguments' => array('access content'),
+						    'file' => 'application.inc',
+						    'type' => MENU_CALLBACK,
+						    );
+  $items['users/%/tutor/application/contact'] = array (
+						      'title callback' => 'title_callback_tutor_application',
+						      'title arguments' => array(1, "Contact Information"),
+						      'page callback' => 'tutor_application_contact',
+						      'page arguments' => array(1),
+						      'access arguments' => array('access content'),
+						      'file' => 'application.inc',
+						      'type' => MENU_CALLBACK,
+						      );
+
+  /**********************************************************************
+   **********************************************************************
+   **
+   ** Viewing Tutors
+   **
+   **********************************************************************
+   **********************************************************************/
+
+  $items['tutors'] = array (
+  			    'title' => 'Available Tutors',
+			    'page callback' => 'tutor_list',
+			    'access arguments' => array('access content'),
+			    'type' => MENU_CALLBACK,
+			    );
+
+  $items['tutors/%'] = array (
+			     'title' => 'Tutor',
+			     'page callback' => 'tutor_profile_view',
+			     'access arguments' => array('access content'),
+			     'type' => MENU_CALLBACK,
+			     );
+
+  return $items;
+}
+
+function title_callback_tutor_application($uid, $additional = "") {
+
+  $u = user_load($uid);
+  if ($u) {
+    $name = $u->name;
+  } else {
+    $u = user_load(array('name' => $uid));
+    if ($u) {
+      $name = $u->name;
+    } else {
+      return "Page not found";
+    }
+  }
+  return "Tutor Application for " . $name . ($additional ? ": $additional" : "");
+}
+
+/**
+ * Implementation of hook_perm()
+ */
+
+function tutor_perm() {
+  return array(
+	       'apply to be a tutor',
+	       'edit own tutor profile',
+	       'edit all tutor profiles',
+	       'administer tutors',
+	       );
+}
+

@@ -1,0 +1,187 @@
+<?php
+
+function tutor_install() {
+  drupal_install_schema('tutor');
+}
+
+function tutor_uninstall() {
+  drupal_uninstall_schema('tutor');
+}
+
+
+function tutor_schema() {
+  $schema['eto_tutor_profile'] = array
+    (
+     'description' => 'Profile of a tutor',
+     'fields' => array (
+			'profile_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'nid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'vid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'status' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'first_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'last_name' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'education' => array
+			(
+			 'type' => 'text',
+			 ),
+			'general_comments' => array
+			(
+			 'type' => 'text',
+			 ),
+			'notification_method' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 32,
+			 ),
+			'notification_address' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'certified_teacher' => array
+			(
+			 'type' => 'int',
+			 ),
+			'certified_states' => array
+			(
+			 'type' => 'text',
+			 ),
+			'photo_id' => array
+			(
+			 'type' => 'int',
+			 ),
+			'created' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'changed' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+
+			),
+     'primary key' => array('profile_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      ),
+     );
+
+  $schema['eto_tutor_application'] = array
+    (
+     'description' => 'Tutor Application',
+     'fields' => array (
+			'application_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'status' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'background_consent' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'contract_agreement' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'contract_agreement_fid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'ssn' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 32,
+			 ),
+			'created' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'changed' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('application_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      'status' => array('status'),
+      ),
+     );
+
+
+  return $schema;
+
+}
+     

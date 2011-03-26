@@ -1,0 +1,5 @@
+name = Vyew Integration
+description = Integrates with the API from http://www.vyew.com/
+package = Vyew
+core = 6.x
+version = "6.x-1.0"
