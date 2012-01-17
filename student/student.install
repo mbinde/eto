@@ -71,20 +71,11 @@ function student_schema() {
 			 'unsigned' => TRUE,
 			 'not null' => TRUE
 			 ),
-			'nid' => array
-			(
-			 'type' => 'int',
-			 'unsigned' => TRUE,
-			 'not null' => TRUE,
-			 'default' => 0,
-			 ),
-			'vid' => array
-			(
-			 'type' => 'int',
-			 'unsigned' => TRUE,
-			 'not null' => TRUE,
-			 'default' => 0,
-			 ),
+			'referral' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
 			'uid' => array
 			(
 			 'type' => 'int',
@@ -119,7 +110,7 @@ function student_schema() {
 			 ),
 			'birthdate' => array
 			(
-			 'type' => 'int',
+			 'type' => 'date',
 			 'unsigned' => TRUE,
 			 ),
 			'grade' => array
@@ -140,6 +131,25 @@ function student_schema() {
 			(
 			 'type' => 'varchar',
 			 'length' => 255,
+			 ),
+			'school' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'school_type' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'instruction' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 'default' => 0,
 			 ),
 			'created' => array
 			(

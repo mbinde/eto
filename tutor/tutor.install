@@ -20,20 +20,6 @@ function tutor_schema() {
 			 'unsigned' => TRUE,
 			 'not null' => TRUE
 			 ),
-			'nid' => array
-			(
-			 'type' => 'int',
-			 'unsigned' => TRUE,
-			 'not null' => TRUE,
-			 'default' => 0,
-			 ),
-			'vid' => array
-			(
-			 'type' => 'int',
-			 'unsigned' => TRUE,
-			 'not null' => TRUE,
-			 'default' => 0,
-			 ),
 			'uid' => array
 			(
 			 'type' => 'int',
@@ -88,6 +74,83 @@ function tutor_schema() {
 			(
 			 'type' => 'int',
 			 ),
+			'skype_name' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'current_occupation' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'best_subject' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'other_subjects' => array
+			(
+			 'type' => 'text',
+			 ),
+			'crimes' => array
+			(
+			 'type' => 'text',
+			 ),
+			'background_cost' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 ),
+			'online_tutoring_experience' => array
+			(
+			 'type' => 'text',
+			 ),
+			'tutoring_years' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'tutoring_students' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'tutoring_clients' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'tutoring_rate' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'tutoring_level' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'tutoring_focus' => array
+			(
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'tutoring_hours' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'where_heard' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
+			'referral' => array
+                        (
+                         'type' => 'varchar',
+                         'length' => 255,
+                         ),
 			'created' => array
 			(
 			 'type' => 'int',
@@ -103,6 +166,75 @@ function tutor_schema() {
 
 			),
      'primary key' => array('profile_id'),
+     'indexes' => array
+     (
+      'uid' => array('uid'),
+      ),
+     );
+
+  $schema['eto_tutor_computer'] = array
+    (
+     'description' => 'Computer of a tutor',
+     'fields' => array (
+			'computer_id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'status' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'webcam' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 ),
+			'connection_type' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 ),
+			'high_speed' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 ),
+			'skype_knowledge' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 ),
+			'created' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+			'changed' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'default' => 0,
+			 ),
+
+			),
+     'primary key' => array('computer_id'),
      'indexes' => array
      (
       'uid' => array('uid'),
@@ -133,31 +265,28 @@ function tutor_schema() {
 			 'not null' => TRUE,
 			 'default' => 0,
 			 ),
-			'background_consent' => array
+			'photo_id_fid' => array
 			(
 			 'type' => 'int',
 			 'unsigned' => TRUE,
 			 'not null' => TRUE,
 			 'default' => 0,
 			 ),
-			'contract_agreement' => array
+			'resume_fid' => array
 			(
 			 'type' => 'int',
 			 'unsigned' => TRUE,
 			 'not null' => TRUE,
 			 'default' => 0,
 			 ),
-			'contract_agreement_fid' => array
+			'self_description' => array
 			(
-			 'type' => 'int',
-			 'unsigned' => TRUE,
-			 'not null' => TRUE,
-			 'default' => 0,
+			 'type' => 'text',
 			 ),
-			'ssn' => array
+			'todo_list' => array
 			(
 			 'type' => 'varchar',
-			 'length' => 32,
+			 'length' => 255,
 			 ),
 			'created' => array
 			(

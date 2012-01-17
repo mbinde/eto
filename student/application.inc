@@ -1,6 +1,14 @@
 <?php
 
 function _student_validate_permissions($uid) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
   global $user;
 
   if ($uid) {
@@ -14,6 +22,15 @@ function _student_validate_permissions($uid) {
 }
 
 function _student_load_application_part($uid, $part) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
+
   if ($part == "consent") {
     return student_application_consent_load($uid);
   } else if ($part == "profile") {
@@ -29,7 +46,7 @@ function _student_load_application_part($uid, $part) {
 
 function _student_validate_application_part($node, $part) {
   if ($part == "consent") {
-    return student_application_consent_validate($node);
+    return student_consent_validate($node);
   } else if ($part == "contact") {    
     return 0; // if it was saved, it's validated
   } else if ($part == "profile") {
@@ -52,11 +69,12 @@ function student_application($uid = "") {
 
   if (!$uid) {
     $mine = 1;
+    $target_user = $user;
     $uid = $user->uid;
   } else {
-    $target_user = user_load($uid);
+    $target_user = eto_user_load($uid);
     if (!$target_user) {
-      $target_user = user_load(array('name' => $uid));
+      $target_user = eto_user_load(array('name' => $uid));
       if (!$target_user) {
 	return drupal_not_found();
       } else {
@@ -65,6 +83,7 @@ function student_application($uid = "") {
       }
     }
   }
+  $uid = $target_user->uid;
 
   if (! _student_validate_permissions($uid)) {
     return "Permission denied.";
@@ -93,7 +112,7 @@ function student_application($uid = "") {
       } else {
 	$output .= "<p><strong>This user is already a student.</strong>  Their application is included below if you wish to review any pieces of it.  Please note that the contact information and biography may have been changed since when they were submitted.</p>";
 	if (! in_array('Student', array_values($target_user->roles))) {
-	  $output .= "<p><strong>Warning:</strong> This user does not have the 'Student' role set, so they are not fully promoted as a student. " . l('Click here to add the student role.', 'user/' . $uid . '/edit') . "</p>";
+	  drupal_set_message("<strong>Warning:</strong> This user does not have the 'Student' role set, so they are not fully promoted as a student. " . l('Click here to add the student role.', 'user/' . $uid . '/edit'), "warning");
 	}
 	$parts_status = _student_display_application_parts ($uid, $mine);
 	$output .= $parts_status['output'];
@@ -133,7 +152,12 @@ function student_application($uid = "") {
 
 
 function _student_display_application_parts ($uid, $mine = 0) {
+  $target_user = eto_user_load($uid);
+  $uid = $target_user->uid;
+
   $status = array();
+
+  $target_user = eto_user_load($uid);
   
   $parts = array('contact' => 'Contact Information',
 		 'profile' => 'Profile',
@@ -165,7 +189,7 @@ function _student_display_application_parts ($uid, $mine = 0) {
     if ($mine) {
       $link = "user/student/application/$key";
     } else {
-      $link = "users/$uid/student/application/$key";
+      $link = "users/" . $target_user->name . "/student/application/$key";
     }
     $status['output'] .= "<tr>\n";
     $status['output'] .= "<td>" . l('[edit]', $link) . "</td>";
@@ -209,7 +233,8 @@ function student_application_submit_form_submit($form, &$form_state) {
   if ($user->uid == $form_state['values']['uid']) {
     $form_state['redirect'] = 'user/student/application';
   } else {
-    $form_state['redirect'] = 'users/' . $form_state['values']['uid'] . '/student/application';
+    $u = eto_user_load($form_state['values']['uid']);
+    $form_state['redirect'] = 'users/' . $u->name . '/student/application';
   }
 }
 
@@ -240,7 +265,8 @@ function student_application_approval_form_submit($form, &$form_state) {
 
   drupal_set_message("Student's application is approved and the student has been notified.", "status");
   drupal_set_message("To finish adding them as a student you *must* select the 'Student' role below and save their account.", "error");
-  $form_state['redirect'] = 'user/' . $form_state['values']['uid'] . '/edit';
+  $u = eto_user_load($form_state['values']['uid']);
+  $form_state['redirect'] = 'users/' . $u->name . '/student/application';
 }
 
 
@@ -250,31 +276,32 @@ function student_application_approval_form_submit($form, &$form_state) {
  *
  ***************************************************************************/
 
-function student_application_contact ($uid = "") {
+function student_application_contact ($name = "") {
   $output = "";
   global $user;
 
-  if (!$uid) {
-    $uid = $user->uid;
+  if (!$name) {
+    $name = $user->name;
   }
-  if (! _student_validate_permissions($uid)) {
+  $u = eto_user_load(array('name' => $name));
+  if (! _student_validate_permissions($u->uid)) {
     return "Permission denied.";
   } 
   // else
 
   module_load_include('inc', 'eto_admin', 'contact');
-  $node = eto_contact_load($uid, 'CONTACT');
+  $node = eto_contact_load($u->uid, 'CONTACT');
 
   $output .= variable_get('eto_contact_form_help_text', '<h3>Please fill out the contact information below:</h3>');
 
   global $user;
-  if ($user->uid == $uid) {
+  if ($user->uid == $u->uid) {
     $redirect = 'user/student/application';
   } else {
-    $redirect = 'users/' . $uid . '/student/application';
+    $redirect = 'users/' . $u->name . '/student/application';
   }
 
-  $output .= drupal_get_form('eto_contact_form', $node, array('uid' => $uid, 
+  $output .= drupal_get_form('eto_contact_form', $node, array('uid' => $u->uid, 
 							      'save' => 'Save this section', 
 							      'contact_type' => 'CONTACT',
 							      'redirect' => $redirect,
@@ -291,20 +318,21 @@ function student_application_contact ($uid = "") {
  *
  ***************************************************************************/
 
-function student_application_profile ($uid = "") {
+function student_application_profile ($name = "") {
   $output = "";
   global $user;
 
-  if (!$uid) {
-    $uid = $user->uid;
+  if (!$name) {
+    $name = $user->name;
   }
-  if (! _student_validate_permissions($uid)) {
+  $u = eto_user_load(array('name' => $name));
+  if (! _student_validate_permissions($u->uid)) {
     return "Permission denied.";
   } 
   // else
 
   module_load_include('inc', 'student', 'profile');
-  $node = student_profile_load($uid);
+  $node = student_profile_load($u->uid);
 
 
   $output .= variable_get('eto_student_profile_form_help_text', '<h3>Please fill out the information below:</h3>');
@@ -318,7 +346,7 @@ function student_application_profile ($uid = "") {
     }
   }
 
-  $output .= drupal_get_form('student_profile_form', $node, array('uid' => $uid));
+  $output .= drupal_get_form('student_profile_form', $node, array('uid' => $u->uid));
 
   return $output;
 }
@@ -331,20 +359,28 @@ function student_application_profile ($uid = "") {
  *
  ***************************************************************************/
 
-function student_application_consent($uid = "") {
+function student_consent_validate($node) {
+  if ($node->terms_and_conditions_agreement == 1) {
+    return 0;
+  } else {
+    return array("You need to accept the terms and conditions.");
+  }
+}
+
+function student_application_consent($name = "") {
   $output = "";
   global $user;
 
-  if (!$uid) {
-    $uid = $user->uid;
+  if (!$name) {
+    $name = $user->name;
   }
-
-  if (! _student_validate_permissions($uid)) {
+  $u = eto_user_load(array('name' => $name));
+  if (! _student_validate_permissions($u->uid)) {
     return "Permission denied.";
   }
   // else
   
-  $node = student_application_consent_load($uid);
+  $node = student_application_consent_load($u->uid);
 
   $output .= variable_get('eto_student_consent_form_help_text', '<h3>Please fill out the information below:</h3>');
 
@@ -357,7 +393,7 @@ function student_application_consent($uid = "") {
     }
   }
 
-  $output .= drupal_get_form('student_application_consent_form', $node, array('uid' => $uid));
+  $output .= drupal_get_form('student_application_consent_form', $node, array('uid' => $u->uid));
 
   return $output;
 }
@@ -367,7 +403,6 @@ function student_application_consent($uid = "") {
  */
 
 function student_application_consent_form(&$form_state, $node, $vars) {
-
 
   $form['application_id'] = array (
 				   '#type' => 'hidden',
@@ -379,17 +414,26 @@ function student_application_consent_form(&$form_state, $node, $vars) {
 			    );
 
   $form['terms_and_conditions_agreement'] = array (
-				       '#type' => 'checkbox',
-				       '#title' => 'Do you agree to the site terms and conditions?',
-				       '#default_value' => ($node->contract_agreement ? "checked" : ""),
+				       '#type' => 'textfield',
+				       '#title' => 'You must accept the Terms of Use to use our service.  Please indicate your acceptance by typing I AGREE (all caps) in the box',
+				       '#default_value' => ($node->terms_and_conditions_agreement ? "I AGREE" : ""),
 				       '#required' => TRUE,
 				       );
 
-  $form['save'] = array (
+  $form['tnc_text'] = array ('#value' => variable_get('terms-and-conditions', ''));
+
+  // don't ever let them uncheck it!
+
+  if ($node->terms_and_conditions_agreement == 1) {
+    $form['terms_and_conditions_agreement']['#disabled'] = TRUE;
+  } else {
+    $form['save'] = array (
 			   '#type' => 'submit',
 			   '#value' => 'Save this section',
 			   );
+  }
 
+  $form['#validate'][] = 'student_application_consent_validate';
   $form['#submit'] = array('student_application_consent_form_submit');
   
 
@@ -397,17 +441,19 @@ function student_application_consent_form(&$form_state, $node, $vars) {
 }
 
 
-function student_application_consent_validate ($node) {
+function student_application_consent_validate ($form, &$form_state) {
   // make sure we filled it out properly
-
-  // nothing to check
-  return "";
+  if ($form_state['values']['terms_and_conditions_agreement'] != "I AGREE") {
+    form_set_error('terms_and_conditions_agreement', "You must type 'I AGREE' (all caps) to indicate acceptance of the terms and conditions.");
+  }
 }
 
 
 
 
 function student_application_consent_form_submit($form, &$form_state) {
+  // if we got here, the form validated, so rewrite our acceptance into acceptance
+  $form_state['values']['terms_and_conditions_agreement'] = 1;
 
   // insert if new, otherwise update
   if ($form_state['values']['application_id'] > 0) {
@@ -421,13 +467,22 @@ function student_application_consent_form_submit($form, &$form_state) {
   if ($user->uid == $form_state['values']['uid']) {
     $form_state['redirect'] = 'user/student/application';
   } else {
-    $form_state['redirect'] = 'users/' . $form_state['values']['uid'] . '/student/application';
+    $u = eto_user_load($form_state['values']['uid']);
+    $form_state['redirect'] = 'users/' . $u->name . '/student/application';
   }
 
 }
 
 
 function student_application_consent_load($uid) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
   $result = db_query("SELECT * FROM {eto_student_application} WHERE uid = %d",
 		     $uid);
   return db_fetch_object($result);
@@ -464,7 +519,7 @@ function student_application_consent_update($n) {
                changed = %d
             WHERE
                application_id = %s",
-	   $n['background_consent'], $n['uid'], $n['status'], time(),
+	   $n['terms_and_conditions_agreement'], $n['uid'], $n['status'], time(),
 	   $n['application_id']);
 
 

@@ -3,16 +3,16 @@
 function vyew_edit_user_room($uid) {
   $output = "";
 
-  $target_user = user_load($uid);
+  $target_user = eto_user_load($uid);
   if (!$target_user) {
-    $target_user = user_load(array('name' => $uid));
+    $target_user = eto_user_load(array('name' => $uid));
     if (!$target_user) {
       return drupal_not_found();
-    } else {
-      $uid = $target_user->uid;
     }
   }
+  $uid = $target_user->uid;
 
+  /*
   $output .= "<p>To get the API key for a user:</p>";
   $output .= "<ol>";
   $output .= "<li>Create an email address for the user that you can access.</li>";
@@ -21,6 +21,7 @@ function vyew_edit_user_room($uid) {
   $output .= "<li>Get their API key and secret: " . l('http://vyew.com/api/public/', 'http://vyew.com/api/public/', array('absolute' => TRUE,
 															  'attributes' => array('target' => '_blank')));
   $output .= "</ol>";
+  */
 
   $node = vyew_room_settings_load($uid);
   $output .= drupal_get_form('vyew_edit_room_form', $node, array('uid' => $uid));
@@ -37,6 +38,17 @@ function vyew_edit_room_form(&$form_state, $node, $vars) {
 			    '#type' => 'hidden',
 			    '#value' => $node->vyew_room_id,
 			    );
+  $api_link = l('http://vyew.com/s/help/managing-rooms/export/492/publishing-embeding-a-vyewbook/', 
+		'http://vyew.com/s/help/managing-rooms/export/492/publishing-embeding-a-vyewbook/', 
+		array('absolute' => TRUE,
+		      'attributes' => array('target' => '_blank')));
+  $form['meeting_id'] = array (
+				  '#type' => 'textfield',
+				  '#title' => 'Vyew Meeting ID',
+				  '#description' => 'If this is not filled in, no room will be created.<br>How to get it: ' . $api_link,
+				  '#default_value' => $node->meeting_id,
+				  );
+
   $form['vyew_username'] = array (
 				  '#type' => 'textfield',
 				  '#title' => 'Vyew.com username for this user/room',
@@ -49,14 +61,7 @@ function vyew_edit_room_form(&$form_state, $node, $vars) {
 				  '#description' => 'Optional',
 				  '#default_value' => $node->vyew_pass,
 				  );
-  $api_link = l('http://vyew.com/api/public/', 'http://vyew.com/api/public/', array('absolute' => TRUE,
-										    'attributes' => array('target' => '_blank')));
-  $form['api_key'] = array (
-				  '#type' => 'textfield',
-				  '#title' => 'API Key',
-				  '#description' => 'If this is not filled in, no room will be created.<br>Get from ' . $api_link,
-				  '#default_value' => $node->api_key,
-				  );
+  /*
   $form['api_secret'] = array (
 				  '#type' => 'textfield',
 				  '#title' => 'API Secret',
@@ -69,7 +74,7 @@ function vyew_edit_room_form(&$form_state, $node, $vars) {
 				  '#description' => 'Optional',
 				  '#default_value' => $node->room_title,
 				  );
-
+*/
   $form['submit'] = array (
 			   '#type' => 'submit',
 			   '#value' => 'Save Settings',
@@ -86,9 +91,11 @@ function vyew_edit_room_form_submit($form, &$form_state) {
     vyew_edit_room_form_insert($form_state['values']);
   }
 
-  drupal_set_message("Setting saved successfully.  " . l('Click here', '#') . " to visit the room.", "status");
+  $user = eto_user_load($form_state['values']['uid']);
 
-  $form_state['redirect'] = 'users/' . $form_state['values']['uid'];
+  drupal_set_message("Setting saved successfully.  " . l('Click here', 'users/' . $user->name . "/room") . " to visit the room.", "status");
+
+  $form_state['redirect'] = 'users/' . $user->name;
 
 }
 
@@ -96,10 +103,10 @@ function vyew_edit_room_form_insert($n) {
   global $user;
 
   db_query("INSERT INTO {eto_vyew_room}
-               (uid, status, vyew_username, vyew_pass, api_key, api_secret, room_title)
+               (uid, status, vyew_username, vyew_pass, meeting_id, api_secret, room_title)
             VALUES
                (%d, %d, '%s', '%s', '%s', '%s', '%s')",
-	   $n['uid'], $n['status'], $n['vyew_username'], $n['vyew_pass'], $n['api_key'], $n['api_secret'], $n['room_title']);
+	   $n['uid'], $n['status'], $n['vyew_username'], $n['vyew_pass'], $n['meeting_id'], $n['api_secret'], $n['room_title']);
 
   watchdog('vyew',
 	   "@user_name inserted a new vyew room config for UID @uid",
@@ -112,16 +119,17 @@ function vyew_edit_room_form_update($n) {
   global $user;
 
   db_query("UPDATE {eto_vyew_room}
+            SET
                uid = %d, 
                status = %d, 
                vyew_username = '%s', 
                vyew_pass = '%s', 
-               api_key = '%s', 
+               meeting_id = '%s', 
                api_secret = '%s', 
                room_title = '%s'
             WHERE
                vyew_room_id = %d",
-	   $n['uid'], $n['status'], $n['vyew_username'], $n['vyew_pass'], $n['api_key'], $n['api_secret'], $n['room_title'],
+	   $n['uid'], $n['status'], $n['vyew_username'], $n['vyew_pass'], $n['meeting_id'], $n['api_secret'], $n['room_title'],
 	   $n['vyew_room_id']);
 
   watchdog('vyew',

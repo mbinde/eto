@@ -1,12 +1,1079 @@
 <?php
 
-  /**********************************************************************
-   **********************************************************************
-   **
-   ** Utility Functions
-   **
-   **********************************************************************
-   **********************************************************************/
+define ('EMAIL_REGEX', "/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i");
+
+function me() {
+  global $user;
+  if ( ($user->uid == 1) || ($user->uid == 3) ) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * implementation of hook_perm()
+ */
+
+function eto_admin_perm() {
+  return array(
+	       'is a tutor',
+	       'is a student',
+	       'change authoring information',
+	       'view hidden node fields',
+
+	       'administer the site',
+	       );
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+
+function eto_admin_menu() {
+
+  $items['subjects'] = array (
+			      'title' => 'Subjects Offered',
+			      'page callback' => 'subject_list',
+			      'file' => 'subjects.pages.inc',
+			      'type' => MENU_CALLBACK,
+			      'access arguments' => array('access content'),
+			      );
+
+  /************
+   *
+   * Admin Dashboard
+   *
+   ************/
+
+  $items['eto/admin'] = array (
+				'title' => 'Admin Dashboard',
+				'page callback' => 'eto_admin_dashboard',
+				'file' => 'dashboard.pages.inc',
+				'type' => MENU_NORMAL_ITEM,
+				'access arguments' => array ('administer the site'),				
+				);
+
+  $items['eto/admin/reports'] = array (
+				       'title' => 'Generate Reports',
+				       'page callback' => 'eto_reports',
+				       'file' => 'reports.pages.inc',
+				       'type' => MENU_NORMAL_ITEM,
+				       'access arguments' => array ('administer the site'),				
+				       );
+  $items['eto/admin/logged-sessions'] = array (
+				       'title' => 'Logged Sessions',
+				       'page callback' => 'eto_logged_sessions',
+				       'file' => 'reports.pages.inc',
+				       'type' => MENU_NORMAL_ITEM,
+				       'access arguments' => array ('administer the site'),				
+				       );
+
+  $items['eto/admin/tutor-list'] = array (
+					      'title' => 'Tutor List',
+					      'page callback' => 'eto_tutor_list',
+					      'file' => 'dashboard.pages.inc',
+					      'type' => MENU_CALLBACK,
+					      'access arguments' => array ('administer the site'),
+					      );
+  $items['eto/admin/student-list'] = array (
+					      'title' => 'Student List',
+					      'page callback' => 'eto_student_list',
+					      'file' => 'dashboard.pages.inc',
+					      'type' => MENU_CALLBACK,
+					      'access arguments' => array ('administer the site'),
+					      );
+  $items['eto/admin/pending-tutors'] = array (
+					      'title' => 'Pending Tutors',
+					      'page callback' => 'eto_pending_tutors',
+					      'file' => 'dashboard.pages.inc',
+					      'type' => MENU_CALLBACK,
+					      'access arguments' => array ('administer the site'),
+					      );
+  $items['eto/admin/pending-students'] = array (
+					      'title' => 'Pending Students',
+					      'page callback' => 'eto_pending_students',
+					      'file' => 'dashboard.pages.inc',
+					      'type' => MENU_CALLBACK,
+					      'access arguments' => array ('administer the site'),
+					      );
+  $items['eto/admin/tutors-today'] = array (
+					      'title' => 'Tutors with Sessions Today',
+					      'page callback' => 'eto_tutors_today',
+					      'file' => 'dashboard.pages.inc',
+					      'type' => MENU_CALLBACK,
+					      'access arguments' => array ('administer the site'),
+					      );
+  $items['eto/admin/sessions-today'] = array (
+					      'title' => 'Sessions Today',
+					      'page callback' => 'eto_sessions_today',
+					      'file' => 'dashboard.pages.inc',
+					      'type' => MENU_CALLBACK,
+					      'access arguments' => array ('administer the site'),
+					      );
+
+  $items['eto/admin/assignments/by-student'] = array (
+						      'title' => 'Assignments (students)',
+						      'page callback' => 'tutor_assignments',
+						      'access arguments' => array ('administer the site'),
+						      'file' => 'assignments.pages.inc',
+						      'type' => MENU_NORMAL_ITEM,
+						      );
+  $items['eto/admin/assignments/by-tutor'] = array (
+						      'title' => 'Assignments (tutors)',
+						      'page callback' => 'tutor_assignments',
+						      'access arguments' => array ('administer the site'),
+						      'file' => 'assignments.pages.inc',
+						      'type' => MENU_NORMAL_ITEM,
+						      );
+  $items['eto/admin/assignment-followups'] = array (
+						    'title' => 'Tutor/Student Pair Followups',
+						    'page callback' => 'assignment_followups',
+						    'access arguments' => array('administer the site'),
+						    'file' => 'dashboard.pages.inc',
+						    'type' => MENU_CALLBACK,
+						    );
+
+  /************
+   *
+   * Tutors Subjects
+   *
+   ************/
+
+  $items['user/subjects/edit'] = array (
+					'title' => 'Edit My Subjects',
+				       'page callback' => 'tutor_edit_subject',
+				       'access arguments' => array('is a tutor'),
+				       'file' => 'subjects.pages.inc',
+				       'type' => MENU_CALLBACK,
+				       );
+  $items['users/%/subjects/edit'] = array (
+					   'title' => 'Edit Subjects',
+					   'page callback' => 'tutor_edit_subject',
+					   'page arguments' => array(1),
+					   'access arguments' => array('is a tutor'),
+					   'file' => 'subjects.pages.inc',
+					   'type' => MENU_CALLBACK,
+					   );
+
+
+  /************
+   *
+   * Students' Tutors
+   *
+   ************/
+
+  $items['user/tutors'] = array (
+				 'title' => 'My Tutors',
+				 'page callback' => 'user_tutors',
+				 'access arguments' => array ('is a student'),
+				 'file' => 'assignments.pages.inc',
+				 'type' => MENU_NORMAL_ITEM,
+				 );
+  $items['users/%/tutors'] = array (
+				    'title' => 'Tutors',
+				    'page callback' => 'user_tutors',
+				    'page arguments' => array (1),
+				    'access arguments' => array ('access content'), // check permissions in the function
+				    'file' => 'assignments.pages.inc',
+				    'type' => MENU_CALLBACK,
+				    );
+  $items['users/%/tutors/add'] = array (
+					'title' => 'Add Tutor',
+					'page callback' => 'tutor_assignment_add',
+					'page arguments' => array (1, 2),
+					'access arguments' => array ('administer the site'),
+					'file' => 'assignments.pages.inc',
+					'type' => MENU_CALLBACK,
+					);
+  $items['users/%/tutors/%/delete'] = array (
+					     'title' => 'Delete Tutor',
+					     'page callback' => 'tutor_assignment_delete',
+					     'page arguments' => array (1, 2, 3),
+					     'access arguments' => array ('administer the site'),
+					     'file' => 'assignments.pages.inc',
+					     'type' => MENU_CALLBACK,
+					     );
+  /************
+   *
+   * Tutors' Students
+   *
+   ************/
+
+  $items['user/students'] = array (
+				   'title' => 'My Students',
+				   'page callback' => 'user_students',
+				   'access arguments' => array ('is a tutor'),
+				   'file' => 'assignments.pages.inc',
+				   'type' => MENU_NORMAL_ITEM,
+				   );
+  $items['users/%/students'] = array (
+				      'title' => 'My Students',
+				      'page callback' => 'user_students',
+				      'page arguments' => array (1),
+				      'access arguments' => array ('access content'), // check permissions in the function
+				      'file' => 'assignments.pages.inc',
+				      'type' => MENU_CALLBACK,
+				      );
+  $items['users/%/students/add'] = array (
+					  'title' => 'Add Student',
+					  'page callback' => 'tutor_assignment_add',
+					  'page arguments' => array (1, 2),
+					  'access arguments' => array ('administer the site'),
+					  'file' => 'assignments.pages.inc',
+					  'type' => MENU_CALLBACK,
+					  );
+  $items['users/%/students/%/delete'] = array (
+						'title' => 'Delete Student',
+						'page callback' => 'tutor_assignment_delete',
+						'page arguments' => array (1, 2, 3),
+						'access arguments' => array ('administer the site'),
+						'file' => 'assignments.pages.inc',
+						'type' => MENU_CALLBACK,
+						);
+  
+  /************
+   *
+   * Session Logs
+   *
+   ************/
+
+  $items['appointments/%/log'] = array (
+					'title' => 'Log Appointment',
+					'page callback' => 'sb_session_log_display',
+					'page arguments' => array(1),
+					'type' => MENU_CALLBACK,
+					'file' => 'sessions.pages.inc',
+					'access arguments' => array('access content'),
+					);
+  $items['appointments/%/log/edit'] = array (
+					     'title' => 'Log Appointment',
+					     'page callback' => 'sb_session_log_edit',
+					     'page arguments' => array(1),
+					     'type' => MENU_CALLBACK,
+					     'file' => 'sessions.pages.inc',
+					     'access arguments' => array('access content'),
+					     );
+  $items['user/session-history'] = array (
+					  'title' => 'My Session History',
+					  'page callback' => 'session_log_history',
+					  'access arguments' => array ('create appointments'),
+					  'file' => 'sessions.pages.inc',
+					  'type' => MENU_NORMAL_ITEM,
+					  );
+  $items['users/%/session-history'] = array (
+					     'title' => 'My Session History',
+					     'page callback' => 'session_log_history',
+					     'page arguments' => array (1),
+					     'access arguments' => array ('create appointments'),
+					     'file' => 'sessions.pages.inc',
+					     'type' => MENU_NORMAL_ITEM,
+					     );
+
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_cron()
+ */
+
+function eto_admin_cron() {
+  appointments_for_notification();
+}
+
+function appointments_for_notification() {
+  // we want anything starting 24 hours or less from now
+  $start = date_make_date(time(), "UTC");
+  $interval = new DateInterval("PT24H");
+  $end = date_make_date(time(), "UTC");
+  $end->add($interval);
+
+  $nodes = sb_appointment_date_load($start, $end, "AND sae.notification_sent = 0");
+
+  foreach ($nodes as $node) {
+    $appointment = sb_appointment_load($node->appointment_id);
+    $event = sb_appointment_event_load($node->appointment_event_id);
+
+    $tutor = eto_user_load($event->tutor_uid);
+    $tutor_name = ($tutor->eto_profile->first_name ? $tutor->eto_profile->first_name . " " . $tutor->eto_profile->last_name : $tutor->name);
+
+    if ($appointment->appointment_type == TUTOR_SESSION) {
+      
+      $u = eto_user_load($appointment->student_uid_0);
+      $date = date_make_date($event->start_datetime_utc, "UTC");
+      date_timezone_set($date, timezone_open(user_tz($u)));
+      $app_date = date_format($date, DATE_FORMAT_ETO_LONG_NO_YEAR);
+      $start_time = date_format($date, 'g:ia');
+      $end_date = date_make_date($event->end_datetime_utc, "UTC");
+      date_timezone_set($end_date, timezone_open(user_tz($u)));
+      $end_time = date_format($end_date, 'g:ia (T)');
+      
+      if ($u->mail) {
+	$messages[] = array('email' => $u->mail,
+			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+			    'date' => $app_date,
+			    'start_time' => $start_time,
+			    'end_time' => $end_time);
+	watchdog('eto_notifications',
+		 'Emailing student @email (ID @id) for appointment ID @appointment, appointment event ID @event.  Tutor is @tutor_name (@tutor_id).',
+		 array("@email" => $u->mail,
+		       "@id" => $u->uid,
+		       "@appointment" => $appointment->appointment_id,
+		       "@event" => $event->appointment_event_id,
+		       "@tutor_name" => $tutor_name,
+		       "@tutor_id" => $tutor->uid)
+		 );
+      }
+      if ($u->eto_profile->email_parent) {
+	$messages[] = array('email' => $u->eto_profile->email_parent,
+			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+			    'date' => $app_date,
+			    'start_time' => $start_time,
+			    'end_time' => $end_time);
+	watchdog('eto_notifications',
+		 'Emailing parent @email (ID @id) for appointment ID @appointment, appointment event ID @event.  Tutor is @tutor_name (@tutor_id).',
+		 array("@email" => $u->eto_profile->email_parent,
+		       "@id" => $u->uid,
+		       "@appointment" => $appointment->appointment_id,
+		       "@event" => $event->appointment_event_id,
+		       "@tutor_name" => $tutor_name,
+		       "@tutor_id" => $tutor->uid)
+		 );
+      }
+      
+      
+    } else if ($appointment->appointment_type == GROUP_SESSION) {
+      
+      for ($i = 1; $i <= 100; $i++) {
+	if ($appointment->{"student_uid_" . $i} > 0) {
+	  $u = eto_user_load($appointment->{"student_uid_" . $i});
+	  $date = date_make_date($event->start_datetime_utc, "UTC");
+	  date_timezone_set($date, timezone_open(user_tz($u)));
+	  $app_date = date_format($date, DATE_FORMAT_ETO_LONG_NO_YEAR);
+	  $start_time = date_format($date, 'g:ia');
+	  $end_date = date_make_date($event->end_datetime_utc, "UTC");
+	  date_timezone_set($end_date, timezone_open(user_tz($u)));
+	  $end_time = date_format($end_date, 'g:ia (T)');
+	  
+	  if ($u->mail) {
+	    $messages[] = array('email' => $u->mail,
+				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+				'date' => $app_date,
+				'start_time' => $start_time,
+				'end_time' => $end_time);
+	  }
+	  if ($u->eto_profile->email_parent) {
+	    $messages[] = array('email' => $u->eto_profile->email_parent,
+				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+				'date' => $app_date,
+				'start_time' => $start_time,
+				'end_time' => $end_time);
+	  }
+	}
+      }
+    }
+    if (count($messages) > 0) {
+      //      $tutor_name = ($tutor->eto_profile->first_name ? $tutor->eto_profile->first_name . " " . $tutor->eto_profile->last_name : $tutor->name);
+      foreach ($messages as $m) {
+	$params = array('tutor_full_name' => $tutor_name,
+			'student_full_name' => $m['name'],
+			'date' => $m['date'],
+			'start_time' => $m['start_time'],
+			'end_time' => $m['end_time']);
+	
+	drupal_mail("eto_admin", 
+		    "session_reminder",
+		    $m['email'],
+		    language_default(), 
+		    $params, 
+		    variable_get('site_mail', 'admin@elitetutorsonline.com'), 
+		    TRUE);
+      }
+    }
+
+    // mark as notified
+    db_query("UPDATE {sb_appointment_event} SET
+              notification_sent = 1
+              WHERE appointment_event_id = %d",
+	     $event->appointment_event_id);
+
+  }
+}
+
+
+
+/**********************************************************************
+ **********************************************************************
+ **
+ ** Theming
+ **
+ **********************************************************************
+ **********************************************************************/
+
+/**
+ * Implememntation of hook_theme()
+ */
+
+function eto_admin_theme() {
+  $themes = array();
+
+  $themes['assignment_row'] = array ('arguments' => array ('user' => NULL,
+							   'fetch' => NULL,
+							   'show_actions' => NULL));
+  $themes['eto_user'] = array ('arguments' => array('user' => NULL));
+
+  $themes['user_date'] = array ('arguments' => array('date' => NULL,
+						     'target_user' => NULL,
+						     'format' => NULL));
+
+  $themes['eto_basic_field'] = array ('arguments' => array('title' => NULL,
+						       'value' => NULL));
+  $themes['eto_red'] = array ('arguments' => array('string' => NULL));
+  $themes['eto_green'] = array ('arguments' => array('string' => NULL));
+
+  return $themes;
+}
+
+function theme_eto_user($user, $link = FALSE) {
+  if ($user->eto_profile->first_name) {
+    $name = $user->eto_profile->first_name . " " . $user->eto_profile->last_name . " (" . $user->name . ")";
+  } else {
+    $name = $user->name;
+  }
+  if ($link) {
+    return l($name, "users/" . $user->name);
+  } else {
+    return $name;
+  }
+}
+
+function theme_assignment_row($user, $fetch, $show_actions = FALSE) {
+  $db_field = $fetch . "_uid";
+
+  $row = array();
+
+  if ($show_actions) {
+    $row[] = l("[add $fetch]", assignment_url("", $user->name, $fetch, "", "add"));
+  }
+
+  $row[] = theme('eto_user', $user, TRUE);
+
+  $assignees = sb_assignment_load ($user->uid, $db_field);
+
+  if ($assignees) {
+    foreach ($assignees as $name => $fullname) {
+      $u = eto_user_load(array('name' => $name));
+      $output .= "<li>" 
+	. l('[delete]', assignment_url("", $user->name, $fetch, $u->uid, "delete")) . " " 
+	. l($fullname, "users/" . $u->name) 
+	. "</li>";
+    }
+  } else {
+    $output .= "None";
+  }
+  $row[] = $output;
+
+  return $row;
+}
+
+function theme_user_date ($date, $target_user = "", $format = "") {
+  if (!$target_user) {
+    global $user;
+    $target_user = $user;
+  }
+  $date = date_make_date($date, 'UTC');
+  date_timezone_set($date, timezone_open(user_tz($target_user)));
+
+  if (!$format) {
+    return $date;
+  } else {
+    return date_format($date, $format);
+  }
+}
+
+function theme_eto_basic_field ($title, $value) {
+  return "<strong>$title: </strong>" . $value . "<br>";
+}
+
+function theme_eto_red ($string) {
+  return "<font color='#FF0000'>$string</font>\n";
+}
+function theme_eto_green ($string) {
+  return "<font color='#3ea91a'>$string</font>\n";
+}
+
+
+/*
+ * Implementation of hook_block
+ */
+function eto_admin_block ($op = 'list', $delta = '', $edit = array()) {
+  switch ($op) 
+    {
+      
+    case 'list':
+      $blocks['terms-and-conditions']['info'] = "Site Terms and Conditions";
+      $blocks['terms-and-conditions']['cache'] = BLOCK_CACHE_PER_ROLE;
+				      
+      return $blocks;
+      break;
+
+    case 'configure':
+      if ($delta == 'terms-and-conditions') {
+
+	$form['terms-and-conditions'] = array(
+					      '#type' => 'textarea',
+					      '#title' => 'Enter the entire text of the site terms and conditions',
+					      '#default_value' => variable_get('terms-and-conditions', ''),
+					      );
+      }
+      return $form;
+      break;
+
+    case 'save':
+      if ($delta == 'terms-and-conditions') {
+	variable_set('terms-and-conditions', $edit['terms-and-conditions']);
+      }
+      return;
+      break;
+
+    case 'view':
+      if ($delta == 'terms-and-conditions') {
+	$block['content'] = variable_get('terms-and-conditions', '');
+      }
+
+      return $block;
+      break;
+
+  }
+
+}
+
+
+/**********************************************************************
+ **********************************************************************
+ **
+ ** Display Functions
+ **
+ **********************************************************************
+ **********************************************************************/
+
+function user_files_block($account) {
+  module_load_include('inc', 'tutor', 'application');
+  $app = _tutor_load_application_part($account, 'consent');
+  $files = array('photo_id_fid' => "Photo ID",
+		 'resume_fid' => 'Resume');
+  $data = array();
+  foreach ($files as $field => $label) {
+    if ($app->{$field} && ($app->{$field} > 0)) {
+      $file = eto_image_load($app->{$field});
+      $data[] = l($label, $file->filepath);
+    }
+  }
+  if ($data) {
+    $output = "<h2>Uploads:</h2>";
+    $output .= join("<br>", $data);
+    $output .= "<p></p>";
+  }
+  return $output;
+
+}
+
+function user_profile_blurb($account) {
+  global $user;
+  if ( ($user->uid != $account->uid) && (! user_access("administer the site"))) {
+    return "";
+  } // else
+
+  $output = "<h2>Welcome to Elite Tutors Online, " . $account->name . "!</h2>";
+
+  $output .= "<p>If you're interested in becoming a student, please follow our " . l("Get Started document for students", "content/students-get-started") . ".  If you want to get a jump on the process, you can start " . l("filling out your student application", "user/student/application") . " after you've " . l("contacted us", "contact") . "</p>";
+
+  $output .= "<p>If instead you are interested in tutoring, please " . l("fill out the tutor application", "user/tutor/application") . " and we will get back to you after reviewing your application.</p>";
+
+  $output .= "<p>If you have any questions please do not hesitate to " . l("contact us", "contact") . ".</p>";
+
+  return $output;
+}
+
+function session_log_display_block_delinquent($target_user) {
+  // find out if we have any session logs we need to write
+
+  global $user;
+
+  if ($user->uid != $target_user->uid) {
+    if (user_access("administer the site")) {
+      $tz_user = $user;
+    } else {
+      return "";
+    }
+  } else {
+    $tz_user = $target_user;
+  }
+
+  $ids = get_delinquent_session_logs($target_user->uid);
+
+  if ($ids) {
+    $output .= "<h2>Delinquent Session Logs</h2>";
+    $output .= "<ul>";
+    foreach ($ids as $id) {
+      $event = sb_appointment_event_load($id);
+      $date = date_make_date($event->start_datetime_utc, "UTC");
+      date_timezone_set($date, timezone_open(user_tz($tz_user)));
+      $title = $event->title . " (" . date_format($date, DATE_FORMAT_ETO_LONG_NO_YEAR) . " at " . date_format($date, TIME_FORMAT_ETO_STANDARD) . ")";
+      $output .= "<li>" . l($title, appointment_url("", $event->appointment_id, $event->appointment_event_id, "log/edit"));
+    }
+    $output .= "</ul>";
+  }
+  return $output;
+}
+
+/**********************************************************************
+ **********************************************************************
+ **
+ ** Notifications
+ **
+ **********************************************************************
+ **********************************************************************/
+
+
+/**
+ * Implementation of hook_mail()
+ */
+
+function eto_admin_mail ($key, &$message, $params) {
+  switch ($key) {
+
+    // congrats on becoming a tutor
+  case 'new_tutor':
+    $message['subject'] = t('Welcome to tutoring at elitetutorsonline.com!');
+    $message['body'][] = eto_admin_generate_welcome_message($params['username'],
+							    $params['full_name']);
+    break;
+
+  case 'session_confirmation':
+    $message['subject'] = "Elite Tutors Online, Inc. Session Confirmation";
+    $message['body'][] = eto_admin_generate_session_confirmation($params['student_full_name'],
+								 $params['tutor_full_name'],
+								 $params['date'],
+								 $params['start_time'],
+								 $params['end_time']);
+    break;
+
+  case 'session_confirmation_tutor':
+    $message['subject'] = "Elite Tutors Online, Inc. Session Confirmation";
+    $message['body'][] = eto_admin_generate_tutor_session_confirmation($params['student_full_name'],
+								       $params['tutor_full_name'],
+								       $params['date'],
+								       $params['start_time'],
+								       $params['end_time']);
+    break;
+
+  case 'session_cancellation':
+    $message['subject'] = "Elite Tutors Online, Inc. Session Cancellation";
+    $message['body'][] = eto_admin_generate_session_cancellation($params['tutor_full_name'],
+								 $params['date'],
+								 $params['start_time'],
+								 $params['end_time'],
+								 $params['notes']);
+    break;
+
+
+  case 'session_reminder':
+    $message['subject'] = "Elite Tutors Online, Inc. Session Reminder";
+    $message['body'][] = eto_admin_generate_session_reminder($params['student_full_name'],
+							     $params['tutor_full_name'],
+							     $params['date'],
+							     $params['start_time'],
+							     $params['end_time']);
+    break;
+
+  case 'foo':
+    break;
+  }
+}
+
+
+function eto_admin_generate_welcome_message ($username, $full_name) {
+
+  $message = "";
+  $message .= "Welcome to Tutoring at Elite Tutors Online, Inc., $full_name!\n\n";
+  $message .= "Your account is now fully promoted to tutor status.  You should log in as $username and:\n\n";
+  $message .= "* Configure what subjects you can teach: http://www.elitetutorsonline.com/user/subjects/edit\n";
+  $message .= "* Schedule some available time: http://www.elitetutorsonline.com/user/calendar\n\n";
+  $message .= "If you have any questions, please feel free to contact us by replying to this email.\n\n";
+
+  return $message;
+}
+
+function eto_admin_generate_session_confirmation ($student_name, $tutor_name, $date, $start_time, $end_time) {
+  $message = "Dear $student_name,\n";
+  $message .= "Thank you for reserving your tutoring session with us. We look forward to seeing you!\n";
+  $message .= "\n";
+  $message .= "Tutoring session with $tutor_name\n";
+  $message .= "$date\n";
+  $message .= "$start_time - $end_time\n";
+  $message .= "\n";
+  $message .= "Cancellation Policy:  Please provide 24 hours notice when you are unable to attend a scheduled session; otherwise, you will be billed for the missed session.  We understand that emergencies do arise occasionally, and exceptions to this policy will be granted solely at your tutor's discretion.\n";
+  $message .= "\n";
+  $message .= "\n";
+
+  return $message;
+}
+
+function eto_admin_generate_tutor_session_confirmation ($student_name, $tutor_name, $date, $start_time, $end_time) {
+  $message = "Dear $tutor_name,\n";
+  $message .= "Here are the details of the tutoring session you scheduled\n";
+  $message .= "\n";
+  $message .= "Tutoring session with: $student_name\n";
+  $message .= "$date\n";
+  $message .= "$start_time - $end_time\n";
+  $message .= "\n";
+  $message .= "\n";
+
+  return $message;
+}
+
+function eto_admin_generate_session_reminder ($student_name, $tutor_name, $date, $start_time, $end_time) {
+  $message = "Dear $student_name,\n";
+  $message .= "You have a tutor session upcoming tomorrow:\n";
+  $message .= "\n";
+  $message .= "Tutoring session with $tutor_name\n";
+  $message .= "$date\n";
+  $message .= "$start_time - $end_time\n";
+  $message .= "\n";
+  $message .= "Cancellation Policy:  Please provide 24 hours notice when you are unable to attend a scheduled session; otherwise, you will be billed for the missed session.  We understand that emergencies do arise occasionally, and exceptions to this policy will be granted solely at your tutor's discretion.\n";
+  $message .= "\n";
+  $message .= "\n";
+
+  return $message;
+}
+
+function eto_admin_generate_session_cancellation($tutor_name, $date, $start_time, $end_time, $notes) {
+  $message .= "The following session has been cancelled:\n";
+  $message .= "\n";
+  $message .= "Tutoring session with $tutor_name\n";
+  $message .= "$date\n";
+  $message .= "$start_time - $end_time\n";
+  $message .= "\n";
+  $message .= "$notes\n";
+  $message .= "\n";
+  $message .= "\n";
+
+  return $message;
+}
+
+/**********************************************************************
+ **********************************************************************
+ **
+ ** Utility Functions
+ **
+ **********************************************************************
+ **********************************************************************/
+
+function eto_admin_form_sms_user_settings_add_form_alter(&$form, &$form_state) {
+  $form['number']['#description'] = "You must enter your number like: 8005554242.  If you use dashes, it will not work.";
+}
+
+function eto_sms_send($user, $message) {
+  if (! is_object($user)) {
+    $user = eto_user_load($user);
+  }
+  if (is_object($user)) {
+    print_r2($user);exit;
+    //    sms_send('4252833388', 'Foobar');
+    //        sms_send('6083477582', 'Foobar');
+    //    print_r2($user);exit;
+  }
+}
+
+
+function get_session_log_tutor ($id) {
+  return db_fetch_object(db_query("SELECT eslp.uid, u.name FROM {eto_session_log_participants} AS eslp
+                                     INNER JOIN {users} AS u ON u.uid=eslp.uid
+                                     WHERE session_log_id = %d AND tutor = 1", $id));
+}
+
+function get_session_log_students ($id) {
+  $result = db_query("SELECT eslp.uid, u.name FROM {eto_session_log_participants}  AS eslp
+                        INNER JOIN {users} AS u ON u.uid=eslp.uid
+                        WHERE session_log_id = %d AND tutor = 0", $id);
+
+  $rows = array();
+  while ($data = db_fetch_object($result)) {
+    $rows[] = $data;
+  }
+  return $rows;
+}
+
+function get_delinquent_session_logs($uid = "") {
+  if ($uid) {
+    $where = "AND sa.tutor_uid = $uid";
+  }
+
+  $now = date_make_date(time(), "UTC");
+  $now_string = date_format($now, DATE_FORMAT_DATETIME);
+
+  $result = db_query("SELECT sae.appointment_event_id
+          FROM sb_appointment_event AS sae
+            INNER JOIN sb_appointment AS sa ON sae.appointment_id=sa.appointment_id
+          WHERE sae.event_logged = 0
+                AND sae.status_flag = 1
+                AND sa.status_flag = 1
+                AND sae.end_datetime_utc < '%s'
+                AND (sa.appointment_type = %d OR sa.appointment_type = %d)
+                $where
+                ORDER BY sae.start_datetime_utc",
+		     $now_string,
+		     TUTOR_SESSION,
+		     GROUP_SESSION);
+
+  $rows = array();
+  while ($data = db_fetch_object($result)) {
+    $rows[] = $data->appointment_event_id;
+  }
+  return $rows;
+
+}
+
+function get_session_logs($uid = "", $field = "", $tablesort = "") {
+  if ($uid && $field) {
+    $where = "AND $field = $uid";
+  }
+  if ($field == "sap.participant_uid") {
+    $join = "INNER JOIN sb_appointment_participants AS sap ON sap.appointment_id = sa.appointment_id";
+  }
+
+  $now = date_make_date(time(), "UTC");
+  $now_string = date_format($now, DATE_FORMAT_DATETIME);
+
+  // don't remove cancelled sessions from this because we might cancel the series and still want 
+  // to see the session
+  $result = db_query("SELECT sae.appointment_event_id
+          FROM sb_appointment_event AS sae
+            INNER JOIN sb_appointment AS sa ON sae.appointment_id=sa.appointment_id
+            INNER JOIN eto_session_log AS esl ON esl.appointment_event_id=sae.appointment_event_id
+            LEFT JOIN term_data AS td ON td.tid=esl.subject_tid
+            $join
+          WHERE sae.event_logged = 1
+                AND sae.end_datetime_utc < '%s'
+                $where" . $tablesort,
+		     $now_string);
+
+  $rows = array();
+  while ($data = db_fetch_object($result)) {
+    $rows[] = $data->appointment_event_id;
+  }
+  return $rows;
+
+}
+
+function sb_tutor_subjects_select ($uid, $option = "") {
+  $obj = sb_tutor_subjects_load($uid);
+  $rows = array();
+
+  if ($option) {
+    $rows[0] = $option;
+  }
+
+  if ($obj) {
+    
+    foreach ($obj->terms as $term) {
+      $rows[$term->tid] = $term->name;
+    }
+  }
+
+  return $rows;
+}
+
+function sb_tutor_subjects_load ($uid) {
+  $result = db_query("SELECT ets.*, td.vid, td.name, td.description, td.weight
+                      FROM {eto_tutor_subjects} AS ets
+                        INNER JOIN {term_data} AS td ON td.tid=ets.tid
+                      WHERE tutor_uid = %d",
+		     $uid);
+  $terms = array();
+  while ($term = db_fetch_object($result)) {
+    $terms["term-" . $term->tid] = $term;
+  }
+  if ($terms) {
+    $obj = (object) array();
+    $obj->uid = $uid;
+    $obj->terms = (object) $terms;
+    return $obj;
+  } else {
+    return "";
+  }
+}
+
+function sb_session_log_load($id, $event = FALSE) {
+  if ($event) {
+    return db_fetch_object(db_query("SELECT esl.*, sa.appointment_id FROM {eto_session_log} AS esl
+                                       INNER JOIN {sb_appointment_event} AS sae ON sae.appointment_event_id = esl.appointment_event_id
+                                       INNER JOIN {sb_appointment} AS sa ON sa.appointment_id = sae.appointment_id
+                                     WHERE esl.appointment_event_id = %d", $id));
+  } else {
+    return db_fetch_object(db_query("SELECT esl.*, sa.appointment_id FROM {eto_session_log} AS esl
+                                       INNER JOIN {sb_appointment_event} AS sae ON sae.appointment_event_id = esl.appointment_event_id
+                                       INNER JOIN {sb_appointment} AS sa ON sa.appointment_id = sae.appointment_id
+                                     WHERE id = %d", $id));
+  }
+}
+
+function sb_assignment_load ($uid, $field) {
+  if ($field == "student_uid") {
+    $mine = "tutor_uid";
+    $profile = "eto_student_profile";
+  } else {
+    $mine = "student_uid";
+    $profile = "eto_tutor_profile";
+  }
+
+  $result = db_query("SELECT u.uid, u.name, ep.first_name, ep.last_name
+                      FROM {eto_assignments} AS ea 
+                        INNER JOIN {users} AS u ON u.uid=ea." . $field . "
+                        LEFT JOIN {" . $profile . "} AS ep ON ep.uid=u.uid
+                      WHERE ea." . $mine . "= %d
+                      ORDER BY ep.last_name, ep.first_name, u.name",
+		     $uid);
+
+  $rows = array();
+  while ($user = db_fetch_object($result)) {
+    if ($user->first_name) {
+      $rows[$user->name] = $user->first_name . " " . $user->last_name . " (" . $user->name . ")";
+    } else {
+      $rows[$user->name] = $user->name;
+    }
+  }
+  return $rows;
+}
+
+function sb_assignment_pair_load ($tutor_uid, $student_uid) {
+  return db_fetch_object(db_query("SELECT * FROM {eto_assignments}
+                                   WHERE tutor_uid = %d AND student_uid = %d",
+				  $tutor_uid, $student_uid));
+}
+
+
+function eto_user_load ($uid) {
+  if (is_numeric($uid)) {
+    $u = user_load($uid);
+  } else if (is_array($uid)) {
+    $val = $uid['name'];
+    if (is_numeric($val)) {
+      $u = user_load($val);
+    } else {
+      $u = user_load(array('name' => $val));
+    }
+  } else {
+    $u = user_load(array('name' => $uid));
+  }
+
+  if (user_access("is a tutor", $u)) {
+    $table = 'eto_tutor_profile';
+  } else if (user_access("is a student", $u)) {
+    $table = 'eto_student_profile';
+  } else  {
+    return $u;  // nothing to load
+  }
+  $result = db_query("SELECT *
+                        FROM {%s} 
+                        WHERE uid = %d",
+		     $table, $u->uid);
+  $u->eto_profile = db_fetch_object($result);
+  return $u;
+}
+
+function sb_tutor_array($option = "", $option2 = "") {
+  $rows = array();
+
+  if ($option) {
+    $rows[0] = $option;
+  }
+  if ($option2) {
+    $rows['__all__'] = $option2;
+  }
+
+  $result = db_query("SELECT u.name, u.uid, etp.first_name, etp.last_name
+                      FROM {users_roles} AS ur 
+                         INNER JOIN {users} AS u ON ur.uid=u.uid 
+                         LEFT JOIN {eto_tutor_profile} AS etp ON etp.uid=u.uid
+                      WHERE ur.rid = 4 
+                      ORDER BY etp.last_name, etp.first_name, u.name");
+
+  while ($user = db_fetch_object($result)) {
+    if ($user->first_name) {
+      $rows[$user->name] = $user->first_name . " " . $user->last_name . " (" . $user->name . ")";
+    } else {
+      $rows[$user->name] = $user->name;
+    }
+  }
+  return $rows;
+}
+
+function is_my_tutor($tutor, $student) {
+  return sb_assignment_pair_load($tutor->uid, $student->uid);
+}
+
+function is_assigned_to($a, $b) {
+  $r = sb_assignment_pair_load($a->uid, $b->uid);
+  if (!$r) {
+    return sb_assignment_pair_load($b->uid, $a->uid);
+  } else {
+    return $r;
+  }
+}
+
+function sb_student_array($option = "") {
+  $rows = array();
+
+  if ($option) {
+    $rows[0] = $option;
+  }
+
+  $result = db_query("SELECT u.name, u.uid, esp.first_name, esp.last_name
+                      FROM {users_roles} AS ur 
+                         INNER JOIN {users} AS u ON ur.uid=u.uid 
+                         LEFT JOIN {eto_student_profile} AS esp ON esp.uid=u.uid
+                      WHERE ur.rid = 5 
+                      ORDER BY esp.last_name, esp.first_name, u.name");
+
+  while ($user = db_fetch_object($result)) {
+    if ($user->first_name) {
+      $rows[$user->name] = $user->first_name . " " . $user->last_name . " (" . $user->name . ")";
+    } else {
+      $rows[$user->name] = $user->name;
+    }
+  }
+  return $rows;
+}
+
+function sb_tutors_students_array ($uid, $option = "") {
+  $rows = array();
+
+  if ($option) {
+    $rows[0] = $option;
+  }
+
+  $result = db_query("SELECT u.uid, u.name, esp.first_name, esp.last_name
+                      FROM {eto_assignments} AS ea
+                        INNER JOIN {users} as u ON ea.student_uid=u.uid
+                         LEFT JOIN {eto_student_profile} AS esp ON esp.uid=u.uid
+                      WHERE ea.tutor_uid = %d
+                      ORDER BY esp.last_name, esp.first_name, u.name",
+		     $uid);
+
+  while ($user = db_fetch_object($result)) {
+    if ($user->first_name) {
+      $rows[$user->name] = $user->first_name . " " . $user->last_name . " (" . $user->name . ")";
+    } else {
+      $rows[$user->name] = $user->name;
+    }
+  }
+  return $rows;
+}
+
 
 
 function eto_image_load($fid) {
@@ -69,55 +1136,65 @@ function _get_states($item = "") {
   }
 
   return array_merge($rows, array(
-	       'AL'=>"Alabama",
-               'AK'=>"Alaska", 
-               'AZ'=>"Arizona", 
-               'AR'=>"Arkansas", 
-               'CA'=>"California", 
-               'CO'=>"Colorado", 
-               'CT'=>"Connecticut", 
-               'DE'=>"Delaware", 
-               'DC'=>"District Of Columbia", 
-               'FL'=>"Florida", 
-               'GA'=>"Georgia", 
-               'HI'=>"Hawaii", 
-               'ID'=>"Idaho", 
-               'IL'=>"Illinois", 
-               'IN'=>"Indiana", 
-               'IA'=>"Iowa", 
-               'KS'=>"Kansas", 
-               'KY'=>"Kentucky", 
-               'LA'=>"Louisiana", 
-               'ME'=>"Maine", 
-               'MD'=>"Maryland", 
-               'MA'=>"Massachusetts", 
-               'MI'=>"Michigan", 
-               'MN'=>"Minnesota", 
-               'MS'=>"Mississippi", 
-               'MO'=>"Missouri", 
-               'MT'=>"Montana",
-               'NE'=>"Nebraska",
-               'NV'=>"Nevada",
-               'NH'=>"New Hampshire",
-               'NJ'=>"New Jersey",
-               'NM'=>"New Mexico",
-               'NY'=>"New York",
-               'NC'=>"North Carolina",
-               'ND'=>"North Dakota",
-               'OH'=>"Ohio", 
-               'OK'=>"Oklahoma", 
-               'OR'=>"Oregon", 
-               'PA'=>"Pennsylvania", 
-               'RI'=>"Rhode Island", 
-               'SC'=>"South Carolina", 
-               'SD'=>"South Dakota",
-               'TN'=>"Tennessee", 
-               'TX'=>"Texas", 
-               'UT'=>"Utah", 
-               'VT'=>"Vermont", 
-               'VA'=>"Virginia", 
-               'WA'=>"Washington", 
-               'WV'=>"West Virginia", 
-               'WI'=>"Wisconsin", 
-               'WY'=>"Wyoming"));
+				  'NA' => '*N/A*',
+				  'AL'=>"Alabama",
+				  'AK'=>"Alaska", 
+				  'AZ'=>"Arizona", 
+				  'AR'=>"Arkansas", 
+				  'CA'=>"California", 
+				  'CO'=>"Colorado", 
+				  'CT'=>"Connecticut", 
+				  'DE'=>"Delaware", 
+				  'DC'=>"District Of Columbia", 
+				  'FL'=>"Florida", 
+				  'GA'=>"Georgia", 
+				  'HI'=>"Hawaii", 
+				  'ID'=>"Idaho", 
+				  'IL'=>"Illinois", 
+				  'IN'=>"Indiana", 
+				  'IA'=>"Iowa", 
+				  'KS'=>"Kansas", 
+				  'KY'=>"Kentucky", 
+				  'LA'=>"Louisiana", 
+				  'ME'=>"Maine", 
+				  'MD'=>"Maryland", 
+				  'MA'=>"Massachusetts", 
+				  'MI'=>"Michigan", 
+				  'MN'=>"Minnesota", 
+				  'MS'=>"Mississippi", 
+				  'MO'=>"Missouri", 
+				  'MT'=>"Montana",
+				  'NE'=>"Nebraska",
+				  'NV'=>"Nevada",
+				  'NH'=>"New Hampshire",
+				  'NJ'=>"New Jersey",
+				  'NM'=>"New Mexico",
+				  'NY'=>"New York",
+				  'NC'=>"North Carolina",
+				  'ND'=>"North Dakota",
+				  'OH'=>"Ohio", 
+				  'OK'=>"Oklahoma", 
+				  'OR'=>"Oregon", 
+				  'PA'=>"Pennsylvania", 
+				  'RI'=>"Rhode Island", 
+				  'SC'=>"South Carolina", 
+				  'SD'=>"South Dakota",
+				  'TN'=>"Tennessee", 
+				  'TX'=>"Texas", 
+				  'UT'=>"Utah", 
+				  'VT'=>"Vermont", 
+				  'VA'=>"Virginia", 
+				  'WA'=>"Washington", 
+				  'WV'=>"West Virginia", 
+				  'WI'=>"Wisconsin", 
+				  'WY'=>"Wyoming"));
+}
+
+
+function assignment_url ($base, $username = "", $type, $id = "", $action = "") {
+  return $base
+    . ($username ? "users/" . $username : "")
+    . "/" . $type. "s"
+    . ($id ? "/" . $id : "")
+    . ($action ? "/" . $action : "");
 }

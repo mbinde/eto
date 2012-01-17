@@ -10,18 +10,6 @@ function student_profile_form(&$form_state, $node, $vars) {
 			    '#value' => ($node->uid ? $node->uid : $vars['uid']),
 			    );
 
-  $form['first_name'] = array (
-			       '#type' => 'textfield',
-			       '#title' => 'First Name',
-			       '#default_value' => $node->first_name,
-			       );
-
-  $form['last_name'] = array (
-			       '#type' => 'textfield',
-			       '#title' => 'Last Name',
-			       '#default_value' => $node->last_name,
-			       );
-
   $form['parent_info'] = array (
 				'#type' => 'fieldset',
 				'#title' => 'Parent or Guardian Contact Information',
@@ -45,25 +33,67 @@ function student_profile_form(&$form_state, $node, $vars) {
 			       '#default_value' => $node->email_parent,
 			       );
 
-  $form['new_birthdate'] = array(
-			     '#type' => 'textfield',
+
+  $form['student_info'] = array (
+				'#type' => 'fieldset',
+				'#title' => 'Student Information',
+				'#collapsible' => TRUE,
+				'#collapsed' => FALSE,
+				);
+
+  $form['student_info']['first_name'] = array (
+			       '#type' => 'textfield',
+			       '#title' => 'First Name',
+			       '#default_value' => $node->first_name,
+			       );
+
+  $form['student_info']['last_name'] = array (
+			       '#type' => 'textfield',
+			       '#title' => 'Last Name',
+			       '#default_value' => $node->last_name,
+			       );
+
+  $form['student_info']['new_birthdate'] = array(
+			     '#type' => 'date_popup',
+			     '#date_format' => 'm/d/Y',
 			     '#title' => 'Birthdate',
 			     '#size' => '10',
-			     '#default_value' => ($node->new_birthdate ? $node->new_birthdate : date('m/d/Y', $node->birthdate)),
-			     '#description' => 'Format: ' . date('m/d/Y', time()),
+			     '#default_value' => ($node->new_birthdate ? $node->new_birthdate : $node->birthdate),
 			     );
-  $form['grade'] = array(
+  $form['student_info']['school'] = array (
+					   '#type' => 'textfield',
+					   '#title' => 'School student attends',
+					   '#default_value' => $node->school,
+					   );
+  $school_type = school_type_select();
+  $form['student_info']['school_type'] = array (
+						'#type' => 'radios',
+						'#title' => 'School Type',
+						'#default_value' => $node->school_type,
+						'#options' => $school_type,
+						);
+  $instruction = instruction_select();
+  $form['student_info']['instruction'] = array (
+						'#type' => 'radios',
+						'#title' => 'Primary Means of Instruction',
+						'#default_value' => $node->instruction,
+						'#options' => $instruction,
+						);
+						
+  $form['student_info']['grade'] = array(
 			     '#type' => 'textfield',
 			     '#title' => 'Grade',
 			     '#size' => '15',
 			     '#default_value' => $node->grade
 			     );
-  $form['textbooks'] = array(
+  $form['student_info']['textbooks'] = array(
 			     '#type' => 'textarea',
-			     '#title' => 'Textbooks',
+			     '#title' => 'Information for Tutors',
 			     '#default_value' => $node->textbooks
 			     );
-  $form['notification_method'] = array (
+
+  /*
+  $form['student_info']['notification_method'] = array (
 					'#type' => 'select',
 					'#title' => 'Notification method',
 					'#options' => array ('0' => '--Select a notification method--',
@@ -71,12 +101,13 @@ function student_profile_form(&$form_state, $node, $vars) {
 							     'text' => 'Text message'),
 					'#default_value' => ($node->notification_method ? $node->notification_method : 0),
 					);
-  $form['notification_address'] = array (
+  $form['student_info']['notification_address'] = array (
 					 '#type' => 'textfield',
 					 '#title' => 'Notification address',
 					 '#description' => 'Either an email or phone number, depending on what you selected for the method above',
 					 '#default_value' => $node->notification_address,
 					 );
+*/
   $form['save'] = array (
 			   '#type' => 'submit',
 			   '#value' => 'Save this section',
@@ -102,16 +133,11 @@ function student_profile_form_submit($form, &$form_state) {
   if ($user->uid == $form_state['values']['uid']) {
     $form_state['redirect'] = 'user/student/application';
   } else {
-    $form_state['redirect'] = 'users/' . $form_state['values']['uid'] . '/student/application';
+    $u = eto_user_load($form_state['values']['uid']);
+    $form_state['redirect'] = 'users/' . $u->name . '/student/application';
   }
 }
 
-
-function student_profile_load($uid) {
-  $result = db_query("SELECT * FROM {eto_student_profile} WHERE uid = %d",
-		     $uid);
-  return db_fetch_object($result);
-}
 
 
 function student_profile_validate ($node) {
@@ -121,9 +147,9 @@ function student_profile_validate ($node) {
 			    'first_name' => 'enter your first name.',
 			    'last_name' => 'enter your last name.',
 			    'birthdate' => 'enter your birthdate.',
-			    'notification_method' => 'select a notification method.',
-			    'notification_address' => 'specify what email or phone number to use to notify you.',
 			    );
+  //			    'notification_method' => 'select a notification method.',
+  //			    'notification_address' => 'specify what email or phone number to use to notify you.',
 
   $messages = array();
 
@@ -133,7 +159,9 @@ function student_profile_validate ($node) {
     }
   }
   if ($node->birthdate) {
-    if ((time() - $node->birthdate) <= 409968000) {
+    $date = date_make_date($node->birthdate, 'UTC');
+    $birthdate_time = date_format($date, 'U');
+    if ((time() - $birthdate_time) <= 409968000) {
       // require coppa
       $required_fields = array (
 				'first_name_parent' => 'enter your parent or guardian\'s first name.',
@@ -165,12 +193,15 @@ function student_profile_insert($n) {
                (first_name, last_name, first_name_parent, last_name_parent, email_parent,
                 birthdate, grade, textbooks, 
                 notification_method, notification_address, uid,
+                school, school_type, instruction,
                 created, changed)
             VALUES
-               ('%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s', '%s', %d, %d, %d)",
+               ('%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s', '%s', %d, '%s', %d, %d,
+                %d, %d)",
 	   $n['first_name'], $n['last_name'], $n['first_name_parent'], $n['last_name_parent'], $n['email_parent'],
 	   $n['birthdate'], $n['grade'], $n['textbooks'],
 	   $n['notification_method'], $n['notification_address'], $n['uid'],
+	   $n['school'], $n['school_type'], $n['instruction'],
 	   $now, $now);
 
   watchdog('profiles', 
@@ -184,7 +215,8 @@ function student_profile_update($n) {
   global $user;
 
   if ($n['new_birthdate']) {
-    $n['birthdate'] = strtotime(eto_format_date($n['new_birthdate']));
+    $d = date_make_date($n['new_birthdate'], "UTC");
+    $n['birthdate'] = date_format($d, 'Y-m-d');
   }
 
   db_query("UPDATE {eto_student_profile} SET
@@ -193,18 +225,22 @@ function student_profile_update($n) {
                first_name_parent = '%s',
                last_name_parent = '%s',
                email_parent = '%s',
-               birthdate = %d,
+               birthdate = '%s',
                grade = '%s',
                textbooks = '%s',
                notification_method = '%s',
                notification_address = '%s',
                uid = %d,
+               school = '%s',
+               school_type = %d,
+               instruction = %d,
                changed = %d
             WHERE
                student_id = %s",
 	   $n['first_name'], $n['last_name'], $n['first_name_parent'], $n['last_name_parent'], $n['email_parent'],
 	   $n['birthdate'], $n['grade'], $n['textbooks'],
 	   $n['notification_method'], $n['notification_address'], $n['uid'],
+	   $n['school'], $n['school_type'], $n['instruction'],
 	   time(),
 	   $n['student_id']
 	   );

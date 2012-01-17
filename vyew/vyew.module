@@ -1,25 +1,5 @@
 <?php
 
-require_once("lib/VyewAPI.php");
-
-// http://vyew.com/api/public/ -- click "Get API Key"
-/*
-Key: 64bc5dcf29
-Secret: 5cef774a5d685f53b3ef 
-*/
-
-
-function _vyew() {
-  static $vyew;
-
-  if (! (is_object($vyew))) {
-    $api_key = "d43a9866b5";
-    $api_secret = "f2ea525865ce6cfb7f99";
-    $vyew = new VyewAPI($api_key, $api_secret);
-  }
-  return $vyew;
-}
-
 /*
  * Implementation of hook_menu()
  */
@@ -46,16 +26,36 @@ function vyew_menu() {
 				       'file' => 'vyew.pages.inc',
 				       'access arguments' => array ('access content')
 				       );
+  $items['users/%/room/%'] = array (
+				       'title callback' => 'vyew_room_title_callback',
+				       'title arguments' => array(1),
+				       'page callback' => 'vyew_room',
+				       'page arguments' => array(1, 3),
+				       'file' => 'vyew.pages.inc',
+				       'access arguments' => array ('access content')
+				       );
 				       
   return $items;
 }
 
+/*
+ * Implementation of hook_perm()
+ */
+
+function vyew_perm() {
+  return array(
+	       'edit own vyew room settings',
+	       'edit any vyew room settings',
+	       );
+}
+
+
 function vyew_room_title_callback($uid) {
-  $u = user_load($uid);
+  $u = eto_user_load($uid);
   if ($u) {
     $name = $u->name;
   } else {
-    $u = user_load(array('name' => $uid));
+    $u = eto_user_load(array('name' => $uid));
     if ($u) {
       $name = $u->name;
     } else {

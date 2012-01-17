@@ -1,6 +1,14 @@
 <?php
 
 function _tutor_validate_permissions($uid) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
   global $user;
 
   if ($uid) {
@@ -14,6 +22,15 @@ function _tutor_validate_permissions($uid) {
 }
 
 function _tutor_load_application_part($uid, $part) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
+
   if ($part == "consent") {
     return tutor_application_consent_load($uid);
   } else if ($part == "profile") {
@@ -22,6 +39,9 @@ function _tutor_load_application_part($uid, $part) {
   } else if ($part == "contact") {
     module_load_include("inc", "eto_admin", "contact");
     return eto_contact_load($uid, 'CONTACT');
+  } else if ($part == "computer") {
+    module_load_include("inc", "tutor", "profile");
+    return tutor_computer_load($uid);
   } else {
     return 0;
   }
@@ -35,6 +55,9 @@ function _tutor_validate_application_part($node, $part) {
   } else if ($part == "profile") {
     module_load_include("inc", "tutor", "profile");
     return tutor_profile_validate($node);
+  } else if ($part == "computer") {
+    module_load_include("inc", "tutor", "profile");
+    return tutor_computer_validate($node);
   } else {
     return 1;
   }
@@ -53,11 +76,12 @@ function tutor_application($uid = "") {
 
   if (!$uid) {
     $mine = 1;
+    $target_user = $user;
     $uid = $user->uid;
   } else {
-    $target_user = user_load($uid);
+    $target_user = eto_user_load($uid);
     if (!$target_user) {
-      $target_user = user_load(array('name' => $uid));
+      $target_user = eto_user_load(array('name' => $uid));
       if (!$target_user) {
 	return drupal_not_found();
       } else {
@@ -66,6 +90,7 @@ function tutor_application($uid = "") {
       }
     }
   }
+  $uid = $target_user->uid;
 
   if (! _tutor_validate_permissions($uid)) {
     return "Permission denied.";
@@ -75,26 +100,30 @@ function tutor_application($uid = "") {
   $app = _tutor_load_application_part($uid, 'consent');
 
   if ($app && ($app->status > 0)) {
-    if ($app->status == 1) {
-      // pending approval
+    if ($app->status != APP_APPROVED) {
       if ($mine) {
-	$output .= "<p>Thank you for submitting your application.  We will get back to you as soon as possible.</p>";
+	if ($app->status == APP_REJECTED) {
+	  $output .= "<p>Sorry, this application has been rejected.</p>";
+	} else {
+	  $output .= "<p>Thank you for submitting your application.  We will get back to you as soon as possible.</p>";
+	}
       } else {
 	$output .= "<p>This application has been submitted and is waiting for your approval.</p>";
 	$parts_status = _tutor_display_application_parts ($uid, $mine);
 	$output .= $parts_status['output'];
-	$output .= "<p>Once you have reviewed the application and made any changes, click below to promote this user to be a tutor.</p>";
 	$node = tutor_application_consent_load($uid);
+	$output .= drupal_get_form('tutor_application_admin_form', $node);
+	$output .= "<p>Once you have done everything above, click below to promote this user to be a tutor and send them an email.</p>";
 	$output .= drupal_get_form('tutor_application_approval_form', $node);
       }
-    } else {
+    } else if ($app->status == APP_APPROVED) {
       // already a tutor
       if ($mine) {
 	$output .= "You are already a tutor!";
       } else {
 	$output .= "<p><strong>This user is already a tutor.</strong>  Their application is included below if you wish to review any pieces of it.  Please note that the contact information and biography may have been changed since when they were submitted.</p>";
 	if (! in_array('Tutor', array_values($target_user->roles))) {
-	  $output .= "<p><strong>Warning:</strong> This user does not have the 'Tutor' role set, so they are not fully promoted as a tutor. " . l('Click here to add the tutor role.', 'user/' . $uid . '/edit') . "</p>";
+	  drupal_set_message("<strong>Warning:</strong> This user does not have the 'Tutor' role set, so they are not fully promoted as a tutor. " . l('Click here to add the tutor role.', 'user/' . $uid . '/edit'), "warning");
 	}
 	$parts_status = _tutor_display_application_parts ($uid, $mine);
 	$output .= $parts_status['output'];
@@ -102,6 +131,8 @@ function tutor_application($uid = "") {
     }
   } else {
     if ($mine) { 
+      $output .= "Please do not complete this application unless you meet the following technical requirements:";
+      $output .= "<ol><li>You currently have a computer connected to a functional webcam.</li><li>You have a skype account and know how to make skype video calls.</li><li>You have high-speed internet access, and a quiet place from which tutor, preferably with an ethernet, not wireless connection.</li></ol>";
       $output .= "<p>When you have completed all parts of the application process, you may submit your application.</p>";
     } else {
       $output .= "<p>Application status:</p>";
@@ -134,11 +165,15 @@ function tutor_application($uid = "") {
 }
 
 function _tutor_display_application_parts ($uid, $mine = 0) {
+  $target_user = eto_user_load($uid);
+  $uid = $target_user->uid;
+
   $status = array();
-  
+
   $parts = array('contact' => 'Contact Information',
+		 'computer' => 'Computer Information',
 		 'profile' => 'Biographical Information',
-		 'consent' => 'Consent and Payment',
+		 'consent' => 'Self Description',
 		 );
 
   $status['output'] .= "\n\n<table>\n";
@@ -148,7 +183,7 @@ function _tutor_display_application_parts ($uid, $mine = 0) {
     
     $status['total'] ++;
     
-    $data = _tutor_load_application_part($uid, $key);
+    $data = _tutor_load_application_part($target_user->uid, $key);
     if ($data) {
       $status['exists'] ++;
       $messages = _tutor_validate_application_part($data, $key);
@@ -166,7 +201,7 @@ function _tutor_display_application_parts ($uid, $mine = 0) {
     if ($mine) {
       $link = "user/tutor/application/$key";
     } else {
-      $link = "users/$uid/tutor/application/$key";
+      $link = "users/" . $target_user->name . "/tutor/application/$key";
     }
     $status['output'] .= "<tr>\n";
     $status['output'] .= "<td>" . l('[edit]', $link) . "</td>";
@@ -210,7 +245,8 @@ function tutor_application_submit_form_submit($form, &$form_state) {
   if ($user->uid == $form_state['values']['uid']) {
     $form_state['redirect'] = 'user/tutor/application';
   } else {
-    $form_state['redirect'] = 'users/' . $form_state['values']['uid'] . '/tutor/application';
+    $u = eto_user_load($form_state['values']['uid']);
+    $form_state['redirect'] = 'users/' . $u->name . '/tutor/application';
   }
 }
 
@@ -235,13 +271,25 @@ function tutor_application_approval_form(&$form_state, $node) {
 
 function tutor_application_approval_form_submit($form, &$form_state) {
   $node = tutor_application_consent_load($form_state['values']['uid']);
-  $node->status = 2;
+  $node->status = APP_APPROVED;
+  $u = eto_user_load($form_state['values']['uid']);
+
+  $params['username'] = $u->name;
+  $params['full_name'] = $u->eto_profile->first_name . " " . $u->eto_profile->last_name;
 
   tutor_application_consent_update(to_array($node));
 
+  drupal_mail("eto_admin", 
+	      "new_tutor",
+	      $u->mail,
+	      language_default(), 
+	      $params, 
+	      variable_get('site_mail', 'admin@elitetutorsonline.com'), 
+	      TRUE);
+
   drupal_set_message("Tutor's application is approved and the tutor has been notified.", "status");
   drupal_set_message("To finish adding them as a tutor you *must* select the 'Tutor' role below and save their account.", "error");
-  $form_state['redirect'] = 'user/' . $form_state['values']['uid'] . '/edit';
+  $form_state['redirect'] = 'user/' . $u->uid . '/edit';
 }
 
 
@@ -251,31 +299,32 @@ function tutor_application_approval_form_submit($form, &$form_state) {
  *
  ***************************************************************************/
 
-function tutor_application_contact ($uid = "") {
+function tutor_application_contact ($name = "") {
   $output = "";
   global $user;
 
-  if (!$uid) {
-    $uid = $user->uid;
+  if (!$name) {
+    $name = $user->name;
   }
-  if (! _tutor_validate_permissions($uid)) {
+  $u = eto_user_load(array('name' => $name));
+  if (! _tutor_validate_permissions($u->uid)) {
     return "Permission denied.";
   } 
   // else
 
   module_load_include('inc', 'eto_admin', 'contact');
-  $node = eto_contact_load($uid, 'CONTACT');
+  $node = eto_contact_load($u->uid, 'CONTACT');
 
   $output .= variable_get('eto_contact_form_help_text', '<h3>Please fill out the contact information below:</h3>');
 
   global $user;
-  if ($user->uid == $uid) {
-    $redirect = 'user/student/application';
+  if ($user->uid == $u->uid) {
+    $redirect = 'user/tutor/application'; // fixme
   } else {
-    $redirect = 'users/' . $uid . '/student/application';
+    $redirect = 'users/' . $u->name . '/tutor/application';
   }
 
-  $output .= drupal_get_form('eto_contact_form', $node, array('uid' => $uid, 
+  $output .= drupal_get_form('eto_contact_form', $node, array('uid' => $u->uid, 
 							      'save' => 'Save this section', 
 							      'contact_type' => 'CONTACT',
 							      'redirect' => $redirect,
@@ -292,20 +341,21 @@ function tutor_application_contact ($uid = "") {
  *
  ***************************************************************************/
 
-function tutor_application_profile ($uid = "") {
+function tutor_application_profile ($name = "") {
   $output = "";
   global $user;
 
-  if (!$uid) {
-    $uid = $user->uid;
+  if (!$name) {
+    $name = $user->name;
   }
-  if (! _tutor_validate_permissions($uid)) {
+  $u = eto_user_load(array('name' => $name));
+  if (! _tutor_validate_permissions($u->uid)) {
     return "Permission denied.";
   } 
   // else
 
   module_load_include('inc', 'tutor', 'profile');
-  $node = tutor_profile_load($uid);
+  $node = tutor_profile_load($u->uid);
 
 
   $output .= variable_get('eto_tutor_profile_form_help_text', '<h3>Please fill out the information below:</h3>');
@@ -313,39 +363,74 @@ function tutor_application_profile ($uid = "") {
   if ($node) {
     $messages = _tutor_validate_application_part($node, 'profile');
     if ($messages) {
+      drupal_set_message(implode('<br>', $messages), "warning");
+    }
+  }
+
+  $output .= drupal_get_form('tutor_profile_form', $node, array('uid' => $u->uid));
+
+  return $output;
+}
+
+/***************************************************************************
+ *
+ * computer subsection
+ *
+ ***************************************************************************/
+
+function tutor_application_computer ($name = "") {
+  $output = "";
+  global $user;
+
+  if (!$name) {
+    $name = $user->name;
+  }
+  $u = eto_user_load(array('name' => $name));
+  if (! _tutor_validate_permissions($u->uid)) {
+    return "Permission denied.";
+  } 
+  // else
+
+  module_load_include('inc', 'tutor', 'profile');
+  $node = tutor_computer_load($u->uid);
+
+
+  $output .= variable_get('eto_tutor_computer_form_help_text', '<h3>Please fill out the information below:</h3>');
+
+  if ($node) {
+    $messages = _tutor_validate_application_part($node, 'computer');
+    if ($messages) {
       $output .= "<div id='validate-messages'>";
       $output .= implode('<br>', $messages);
       $output .= "</div>";
     }
   }
 
-  $output .= drupal_get_form('tutor_profile_form', $node, array('uid' => $uid));
+  $output .= drupal_get_form('tutor_computer_form', $node, array('uid' => $u->uid));
 
   return $output;
 }
 
-
-
 /***************************************************************************
  *
- * consent subsection
+ * consent (self description) subsection
  *
  ***************************************************************************/
 
-function tutor_application_consent($uid = "") {
+function tutor_application_consent($name = "") {
   $output = "";
   global $user;
 
-  if (!$uid) {
-    $uid = $user->uid;
+  if (!$name) {
+    $name = $user->name;
   }
-
-  if (! _tutor_validate_permissions($uid)) {
+  $u = eto_user_load(array('name' => $name));
+  if (! _tutor_validate_permissions($u->uid)) {
     return "Permission denied.";
   }
   // else
   
-  $node = tutor_application_consent_load($uid);
+  $node = tutor_application_consent_load($u->uid);
 
   $output .= variable_get('eto_tutor_consent_form_help_text', '<h3>Please fill out the information below:</h3>');
 
@@ -358,7 +443,7 @@ function tutor_application_consent($uid = "") {
     }
   }
 
-  $output .= drupal_get_form('tutor_application_consent_form', $node, array('uid' => $uid));
+  $output .= drupal_get_form('tutor_application_consent_form', $node, array('uid' => $u->uid));
 
   return $output;
 }
@@ -379,34 +464,32 @@ function tutor_application_consent_form(&$form_state, $node, $vars) {
 			    '#value' => ($node->uid ? $node->uid : $vars['uid']),
 			    );
 
-  $form['background_consent'] = array (
-				       '#type' => 'checkbox',
-				       '#title' => 'Do you consent to a background check?',
-				       '#default_value' => ($node->background_consent ? "checked" : ""),
-				       '#required' => TRUE,
-				       );
-  $form['contract_agreement'] = array (
-				       '#type' => 'checkbox',
-				       '#title' => 'Do you agree to the contract terms and conditions?',
-				       '#default_value' => ($node->contract_agreement ? "checked" : ""),
-				       '#required' => TRUE,
-				       );
-  $form['new_contract_agreement_fid'] = array (
+  $form['self_description'] = array (
+				     '#type' => 'textarea',
+				     '#title' => 'Please use the space below to write a brief message introducing yourself to potential tutoring clients',
+				     '#required' => TRUE,
+				     '#default_value' => $node->self_description,
+				     );
+
+  $form['new_photo_id_fid'] = array (
 					       '#type' => 'image_upload_element',
-					       '#title' => 'Your digital signature image',
+					       '#title' => 'A copy of your photo ID',
 					       '#description' => 'File must be 2MB or less.',
-					       '#default_value' => ($node->new_contract_agreement_fid
-								    ? eto_image_load($node->new_contract_agreement_fid)
-								    : eto_image_load($node->contract_agreement_fid)
+					       '#default_value' => ($node->new_photo_id_fid
+								    ? eto_image_load($node->new_photo_id_fid)
+								    : eto_image_load($node->photo_id_fid)
+								    ),
+					       );
+  $form['new_resume_fid'] = array (
+					       '#type' => 'upload_element',
+					       '#title' => 'Your Resume',
+					       '#description' => 'File must be 2MB or less.',
+					       '#default_value' => ($node->new_resume_fid
+								    ? eto_image_load($node->new_resume_fid)
+								    : eto_image_load($node->resume_fid)
 								    ),
 					       );
 
-  $form['ssn'] = array (
-			'#type' => 'textfield',
-			'#title' => 'Social Security Number or Employer Identification Number (for 1099)',
-			'#default_value' => $node->ssn,
-			'#required' => TRUE,
-			);
 
   $form['save'] = array (
 			   '#type' => 'submit',
@@ -422,26 +505,30 @@ function tutor_application_consent_form(&$form_state, $node, $vars) {
 
 function tutor_application_consent_validate ($node) {
   // make sure we filled it out properly
-
-  $required_fields = array ('background_consent' => "check the background consent checkbox",
-			    'contract_agreement' => "check the contract agreement checkbox",
-			    'ssn' => "enter your social security number or employer identification number for tax purposes",
-			    );
-
-  $messages = array();
-
-  foreach ($required_fields as $f => $text) {
-    if (empty($node->$f)) {
-      $messages[] = 'You need to ' . $text;
-    }
+  if (strlen($node->self_description) > 0) {
+    return 0;
+  } else {
+    return array("You need to fill out your self description");
   }
-  return $messages;
+
+}
+
+function sb_file_presave($item, $path = "") {
+  $destination = file_directory_path() . ($path ? "/" . $path : "");
+
+  $fid = upload_element_save($item, $destination, FILE_EXISTS_RENAME);
+  return $fid;
 }
 
 
-
-
 function tutor_application_consent_form_submit($form, &$form_state) {
+
+  if ($form_state['values']['new_photo_id_fid']) {
+    $form_state['values']['photo_id_fid'] = sb_file_presave($form_state['values']['new_photo_id_fid'], "tutor-files");
+  }
+  if ($form_state['values']['new_resume_fid']) {
+    $form_state['values']['resume_fid'] = sb_file_presave($form_state['values']['new_resume_fid'], "tutor-files");
+  }
 
   // insert if new, otherwise update
   if ($form_state['values']['application_id'] > 0) {
@@ -455,16 +542,27 @@ function tutor_application_consent_form_submit($form, &$form_state) {
   if ($user->uid == $form_state['values']['uid']) {
     $form_state['redirect'] = 'user/tutor/application';
   } else {
-    $form_state['redirect'] = 'users/' . $form_state['values']['uid'] . '/tutor/application';
+    $u = eto_user_load($form_state['values']['uid']);
+    $form_state['redirect'] = 'users/' . $u->name . '/tutor/application';
   }
 
 }
 
 
 function tutor_application_consent_load($uid) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
   $result = db_query("SELECT * FROM {eto_tutor_application} WHERE uid = %d",
 		     $uid);
-  return db_fetch_object($result);
+  $obj = db_fetch_object($result);
+  $obj->todo_list = unserialize($obj->todo_list);
+  return $obj;
 }
 
 
@@ -474,13 +572,13 @@ function tutor_application_consent_insert($n) {
   $now = time();
 
   db_query("INSERT INTO {eto_tutor_application}
-               (background_consent, contract_agreement, contract_agreement_fid, ssn,
+               (self_description, photo_id_fid, resume_fid, 
                 uid, created, changed)
             VALUES
-               (%d, %d, %d, '%s',
+               ('%s', %d, %d,
                 %d, %d, %d)",
 
-	   $n['background_consent'], $n['contract_agreement'], $n['new_contract_agreement_fid'], $n['ssn'],
+	   $n['self_description'], $n['photo_id_fid'], $n['resume_fid'],
 	   $n['uid'], $now, $now
 	   );
 
@@ -496,16 +594,15 @@ function tutor_application_consent_update($n) {
   global $user;
 
   db_query("UPDATE {eto_tutor_application} SET
-               background_consent = %d,
-               contract_agreement = %d,
-               contract_agreement_fid = %d,
-               ssn = '%s',
+               self_description = '%s',
+               photo_id_fid = %d,
+               resume_fid = %d,
                uid = %d,
                status = %d,
                changed = %d
             WHERE
                application_id = %s",
-	   $n['background_consent'], $n['contract_agreement'], $n['new_contract_agreement_fid'], $n['ssn'],
+	   $n['self_description'], $n['photo_id_fid'], $n['resume_fid'], 
 	   $n['uid'], $n['status'], time(),
 	   $n['application_id']);
 
@@ -519,3 +616,53 @@ function tutor_application_consent_update($n) {
 
 }
 
+
+/***************************************************************************
+ *
+ * admin section
+ *
+ ***************************************************************************/
+
+function tutor_application_admin_form(&$form_state, $node) {
+
+  $form['application_id'] = array ('#type' => 'hidden', '#value' => $node->application_id);
+
+  $status_options = app_status("", TRUE);
+  $form['status'] = array (
+			   '#type' => 'select',
+			   '#options' => $status_options,
+			   '#title' => 'Application Status',
+			   '#default_value' => $node->status,
+			   );
+  $todo_options = app_todo();
+
+  $form['todo_list'] = array (
+			      '#type' => 'checkboxes',
+			      '#options' => $todo_options,
+			      '#title' => 'Administrative To Do List',
+			      '#default_value' => ($node->todo_list ? $node->todo_list : array()),
+			      );
+
+  $form['save'] = array (
+			   '#type' => 'submit',
+			   '#value' => 'Save',
+			   );
+
+  $form['#submit'] = array('tutor_application_admin_form_submit');
+
+  return $form;
+}
+
+function tutor_application_admin_form_submit($form, &$form_state) {
+  // we're only writing a subset of the fields
+  db_query("UPDATE {eto_tutor_application} SET
+              status = %d,
+              todo_list = '%s'
+            WHERE
+                application_id = %s",
+	   $form_state['values']['status'],
+	   serialize($form_state['values']['todo_list']),
+	   $form_state['values']['application_id']
+	   );
+  drupal_set_message("Changes saved.", "success");
+}

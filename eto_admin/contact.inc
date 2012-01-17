@@ -59,16 +59,24 @@ function eto_contact_form(&$form_state, $node, $vars) {
   $form['state'] = array (
 			       '#type' => 'select',
 			       '#title' => 'State',
-			       '#options' => _get_states('--Select State--'),
+			       '#options' => _get_states('--Select a State--'),
+			       '#description' => 'Select "N/A" if you are not in the US',
 			       '#required' => TRUE,
 			       '#default_value' => ($node->state ? $node->state : 0),
 			       );
   $form['zip'] = array (
 			       '#type' => 'textfield',
-			       '#title' => 'Zip',
+			       '#title' => 'Zip/Postal',
 			       '#size' => '10',
 			       '#required' => TRUE,
 			       '#default_value' => $node->zip,
+			       );
+  $form['country'] = array (
+			       '#type' => 'textfield',
+			       '#title' => 'Country',
+			       '#size' => '25',
+			       '#required' => TRUE,
+			       '#default_value' => ($node->country ? $node->country : "United States"),
 			       );
   $form['day_phone'] = array (
 			       '#type' => 'textfield',
@@ -137,11 +145,11 @@ function eto_contact_insert($n) {
   $now = time();
 
   db_query("INSERT INTO {eto_contact}
-               (first_name, last_name, address_1, address_2, address_3, city, state, zip,
+               (first_name, last_name, address_1, address_2, address_3, city, state, zip, country,
                 day_phone, evening_phone, cell_phone, other_phone, created, changed)
             VALUES
-               ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, %d)",
-	   $n['first_name'], $n['last_name'], $n['address_1'], $n['address_2'], $n['address_3'], $n['city'], $n['state'], $n['zip'],
+               ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, %d)",
+	   $n['first_name'], $n['last_name'], $n['address_1'], $n['address_2'], $n['address_3'], $n['city'], $n['state'], $n['zip'], $n['country'],
 	   $n['day_phone'], $n['evening_phone'], $n['cell_phone'], $n['other_phone'], $now, $now);
 
   $id = db_last_insert_id('eto_contact', 'contact_id');
@@ -173,6 +181,7 @@ function eto_contact_update($n) {
                city = '%s',
                state = '%s',
                zip = '%s',
+               country = '%s',
                day_phone = '%s',
                evening_phone = '%s',
                cell_phone = '%s',
@@ -180,7 +189,7 @@ function eto_contact_update($n) {
                changed = %d
             WHERE
                contact_id = %d",
-	   $n['first_name'], $n['last_name'], $n['address_1'], $n['address_2'], $n['address_3'], $n['city'], $n['state'], $n['zip'],
+	   $n['first_name'], $n['last_name'], $n['address_1'], $n['address_2'], $n['address_3'], $n['city'], $n['state'], $n['zip'], $n['country'],
 	   $n['day_phone'], $n['evening_phone'], $n['cell_phone'], $n['other_phone'], time(),
 	   $n['contact_id']
 	   );

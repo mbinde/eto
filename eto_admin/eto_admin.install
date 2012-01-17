@@ -60,6 +60,11 @@ function eto_admin_schema() {
 			 'type' => 'varchar',
 			 'length' => 255,
 			 ),
+			'country' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
 			'day_phone' => array
 			(
 			 'type' => 'varchar',
@@ -164,6 +169,229 @@ function eto_admin_schema() {
       'uid' => array('uid'),
       ),
      );
+
+
+  $schema['eto_assignments'] = array
+    (
+     'description' => 'Tutor Assignments',
+     'fields' => array (
+			'id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'tutor_uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'student_uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'session_count' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'followup_complete' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('id'),
+     'unique keys' => array 
+     (
+      'pair' => array('tutor_uid', 'student_uid'),
+      ),
+     'indexes' => array
+     (
+      'student_uid' => array('student_uid'),
+      'session_count' => array('session_count'),
+      'followup_complete' => array('followup_complete'),
+      ),
+     );
+
+  $schema['eto_tutor_subjects'] = array
+    (
+     'description' => 'Tutor subjects',
+     'fields' => array (
+			'id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'tutor_uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'tid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('id'),
+     'unique keys' => array 
+     (
+      'pair' => array('tutor_uid', 'tid'),
+      ),
+     'indexes' => array
+     (
+      'tid' => array('tid'),
+      ),
+     );
+
+
+  $schema['eto_session_log'] = array
+    (
+     'description' => 'Session Log',
+     'fields' => array (
+			'id' => array
+			(
+			 'type' => 'serial',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE
+			 ),
+			'appointment_event_id' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'title' => array
+			(
+			 'type' => 'varchar',
+			 'length' => 255,
+			 ),
+			'date_submitted_utc' => array
+			(
+			 'type' => 'datetime',
+			 'not null' => TRUE,
+			 ),
+			'status_flag' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 1,
+			 ),
+			'start_datetime_utc' => array
+			(
+			 'type' => 'datetime',
+			 'not null' => TRUE,
+			 ),
+			'tutor_split' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 1,
+			 ),
+			'duration_original' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'hourly_rate_original' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'duration_final' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'hourly_rate_final' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'total_cost' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'subject_tid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'private_notes' => array
+			(
+			 'type' => 'text'
+			 ),
+			'public_notes' => array
+			(
+			 'type' => 'text'
+			 ),
+
+			),
+     'primary key' => array('id'),
+     );
+  
+  $schema['eto_session_log_participants'] = array
+    (
+     'description' => 'Session Log Participants',
+     'fields' => array (
+			'session_log_id' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'uid' => array
+			(
+			 'type' => 'int',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			'tutor' => array
+			(
+			 'type' => 'int',
+			 'size' => 'tiny',
+			 'unsigned' => TRUE,
+			 'not null' => TRUE,
+			 'default' => 0,
+			 ),
+			),
+     'primary key' => array('session_log_id', 'uid'),
+     );
+			 
 
   return $schema;
 }

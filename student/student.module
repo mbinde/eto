@@ -1,5 +1,29 @@
 <?php
 
+
+function school_type_select($arg = "") {
+  $data = array ('1' => 'Public',
+		 '2' => 'Private',
+		 '3' => 'Homeschool',
+		 '4' => 'Other');
+  if ($arg) {
+    return $data[$arg];
+  } else {
+    return $data;
+  }
+}
+
+function instruction_select($arg = "") {
+  $data = array ('1' => 'Traditional',
+		 '2' => 'Online',
+		 '3' => 'Hybrid');
+  if ($arg) {
+    return $data[$arg];
+  } else {
+    return $data;
+  }
+}
+
 /**
  * Implementation of hook_menu()
  */
@@ -20,7 +44,7 @@ function student_menu() {
 					    'page callback' => 'student_application',
 					    'access arguments' => array('access content'),
 					    'file' => 'application.inc',
-					    'type' => MENU_NORMAL_ITEM,
+					    'type' => MENU_CALLBACK,
 					    );
   $items['users/%/student/application'] = array (
 					      'title callback' => 'title_callback_student_application',
@@ -29,7 +53,7 @@ function student_menu() {
 					      'page arguments' => array(1),
 					      'access arguments' => array('access content'),
 					      'file' => 'application.inc',
-					      'type' => MENU_NORMAL_ITEM,
+					      'type' => MENU_CALLBACK,
 					      );
   $items['user/student/application/profile'] = array (
 						'title' => 'Student Application: Biographical Information',
@@ -86,11 +110,11 @@ function student_menu() {
 
 function title_callback_student_application($uid, $additional = "") {
 
-  $u = user_load($uid);
+  $u = eto_user_load($uid);
   if ($u) {
     $name = $u->name;
   } else {
-    $u = user_load(array('name' => $uid));
+    $u = eto_user_load(array('name' => $uid));
     if ($u) {
       $name = $u->name;
     } else {
@@ -110,5 +134,75 @@ function student_perm() {
 	       'edit all student profiles',
 	       'administer students',
 	       );
+}
+
+/**
+ * figure out what students we have in what statuses
+ */
+
+function student_applications_in_progress() {
+  $result = db_query("SELECT * FROM {eto_student_application} WHERE status > 0 AND status != " . APP_APPROVED . " AND status != " . APP_REJECTED);
+  $rows = array();
+  while ($data = db_fetch_object($result)) {
+    //    $data->todo_list = unserialize($data->todo_list);
+    $rows[] = $data;
+  }
+  return $rows;
+}
+
+
+function student_profile_load($uid) {
+  if (! is_numeric($uid)) {
+    if (is_object($uid)) {
+      $uid = $uid->uid;
+    } else {
+      $u = eto_user_load($uid);
+      $uid = $u->uid;
+    }
+  }
+  $result = db_query("SELECT * FROM {eto_student_profile} WHERE uid = %d",
+		     $uid);
+  return db_fetch_object($result);
+}
+
+
+/**
+ * Display contact information
+ */
+
+function student_contact_information_view($account) {
+  $output = "<h2>Contact Information</h3>";
+
+  $u = eto_user_load($account->uid);
+  module_load_include("inc", "eto_admin", "contact");
+  $contact = eto_contact_load($account->uid, 'CONTACT');
+
+  if ($u->eto_profile->first_name_parent || $u->eto_profile->last_name_parent) {
+    $output .= "Parent: " . $u->eto_profile->first_name_parent . ' ' . $u->eto_profile->last_name_parent . ' (<a href="mailto:' . $u->eto_profile->email_parent . '">' . $u->eto_profile->email_parent . '</a>)<br>';
+  }
+  $phones = array();
+  if ($contact->day_phone) {
+    $phones[] = "Day Phone: " . $contact->day_phone;
+  }
+  if ($contact->evening_phone) {
+    $phones[] = "Evening Phone: " . $contact->evening_phone;
+  }    
+  if ($contact->cell_phone) {
+    $phones[] = "Cell Phone: " . $contact->cell_phone;
+  }
+  if ($contact->other_phone) {
+    $phones[] = "Other Phone: " . $contact->other_phone;
+  }
+  foreach ($phones as $phone) {
+    $output .= $phone . '<br>';
+  }
+
+
+  if (user_access("administer the site", $user)) {
+    $output .= "Address: " . l('Click here', 'users/' . $account->name . 'student/application/contact') . '<br>';
+  }
+
+  $output .= '<p>&nbsp;</p>';
+  return $output;
 }
 
