@@ -683,6 +683,15 @@ function eto_admin_mail ($key, &$message, $params) {
 								 $params['notes']);
     break;
 
+  case 'session_cancellation_future':
+    $message['subject'] = "Elite Tutors Online, Inc. Standing Appointment Cancellation";
+    $message['body'][] = eto_admin_generate_session_cancellation_future($params['tutor_full_name'],
+                         $params['date'],
+                         $params['start_time'],
+                         $params['end_time'],
+                         $params['notes']);
+    break;
+
 
   case 'session_reminder':
     $message['subject'] = "Elite Tutors Online, Inc. Session Reminder";
@@ -756,6 +765,20 @@ function eto_admin_generate_session_reminder ($student_name, $tutor_name, $date,
 
 function eto_admin_generate_session_cancellation($tutor_name, $date, $start_time, $end_time, $notes) {
   $message .= "The following session has been cancelled:\n";
+  $message .= "\n";
+  $message .= "Tutoring session with $tutor_name\n";
+  $message .= "$date\n";
+  $message .= "$start_time - $end_time\n";
+  $message .= "\n";
+  $message .= "$notes\n";
+  $message .= "\n";
+  $message .= "\n";
+
+  return $message;
+}
+
+function eto_admin_generate_session_cancellation_future($tutor_name, $date, $start_time, $end_time, $notes) {
+  $message .= "The following appointment and any future appointments in the series have been cancelled:\n";
   $message .= "\n";
   $message .= "Tutoring session with $tutor_name\n";
   $message .= "$date\n";
