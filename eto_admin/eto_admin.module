@@ -52,7 +52,7 @@ function eto_admin_menu() {
 				'page callback' => 'eto_admin_dashboard',
 				'file' => 'dashboard.pages.inc',
 				'type' => MENU_NORMAL_ITEM,
-				'access arguments' => array ('administer the site'),				
+				'access arguments' => array ('administer the site'),
 				);
 
   $items['eto/admin/reports'] = array (
@@ -60,14 +60,14 @@ function eto_admin_menu() {
 				       'page callback' => 'eto_reports',
 				       'file' => 'reports.pages.inc',
 				       'type' => MENU_NORMAL_ITEM,
-				       'access arguments' => array ('administer the site'),				
+				       'access arguments' => array ('administer the site'),
 				       );
   $items['eto/admin/logged-sessions'] = array (
 				       'title' => 'Logged Sessions',
 				       'page callback' => 'eto_logged_sessions',
 				       'file' => 'reports.pages.inc',
 				       'type' => MENU_NORMAL_ITEM,
-				       'access arguments' => array ('administer the site'),				
+				       'access arguments' => array ('administer the site'),
 				       );
 
   $items['eto/admin/tutor-list'] = array (
@@ -232,7 +232,7 @@ function eto_admin_menu() {
 						'file' => 'assignments.pages.inc',
 						'type' => MENU_CALLBACK,
 						);
-  
+
   /************
    *
    * Session Logs
@@ -294,13 +294,14 @@ function appointments_for_notification() {
 
   foreach ($nodes as $node) {
     $appointment = sb_appointment_load($node->appointment_id);
-    $event = sb_appointment_event_load($node->appointment_event_id);
+    $event = sb_appointment_event_load(array(
+               'appointment_event_id' => $node->appointment_event_id));
 
     $tutor = eto_user_load($event->tutor_uid);
     $tutor_name = ($tutor->eto_profile->first_name ? $tutor->eto_profile->first_name . " " . $tutor->eto_profile->last_name : $tutor->name);
 
     if ($appointment->appointment_type == TUTOR_SESSION) {
-      
+
       $u = eto_user_load($appointment->student_uid_0);
       $date = date_make_date($event->start_datetime_utc, "UTC");
       date_timezone_set($date, timezone_open(user_tz($u)));
@@ -309,7 +310,7 @@ function appointments_for_notification() {
       $end_date = date_make_date($event->end_datetime_utc, "UTC");
       date_timezone_set($end_date, timezone_open(user_tz($u)));
       $end_time = date_format($end_date, 'g:ia (T)');
-      
+
       if ($u->mail) {
 	$messages[] = array('email' => $u->mail,
 			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
@@ -342,10 +343,10 @@ function appointments_for_notification() {
 		       "@tutor_id" => $tutor->uid)
 		 );
       }
-      
-      
+
+
     } else if ($appointment->appointment_type == GROUP_SESSION) {
-      
+
       for ($i = 1; $i <= 100; $i++) {
 	if ($appointment->{"student_uid_" . $i} > 0) {
 	  $u = eto_user_load($appointment->{"student_uid_" . $i});
@@ -356,7 +357,7 @@ function appointments_for_notification() {
 	  $end_date = date_make_date($event->end_datetime_utc, "UTC");
 	  date_timezone_set($end_date, timezone_open(user_tz($u)));
 	  $end_time = date_format($end_date, 'g:ia (T)');
-	  
+
 	  if ($u->mail) {
 	    $messages[] = array('email' => $u->mail,
 				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
@@ -382,13 +383,13 @@ function appointments_for_notification() {
 			'date' => $m['date'],
 			'start_time' => $m['start_time'],
 			'end_time' => $m['end_time']);
-	
-	drupal_mail("eto_admin", 
+
+	drupal_mail("eto_admin",
 		    "session_reminder",
 		    $m['email'],
-		    language_default(), 
-		    $params, 
-		    variable_get('site_mail', 'admin@elitetutorsonline.com'), 
+		    language_default(),
+		    $params,
+		    variable_get('site_mail', 'admin@elitetutorsonline.com'),
 		    TRUE);
       }
     }
@@ -465,9 +466,9 @@ function theme_assignment_row($user, $fetch, $show_actions = FALSE) {
   if ($assignees) {
     foreach ($assignees as $name => $fullname) {
       $u = eto_user_load(array('name' => $name));
-      $output .= "<li>" 
-	. l('[delete]', assignment_url("", $user->name, $fetch, $u->uid, "delete")) . " " 
-	. l($fullname, "users/" . $u->name) 
+      $output .= "<li>"
+	. l('[delete]', assignment_url("", $user->name, $fetch, $u->uid, "delete")) . " "
+	. l($fullname, "users/" . $u->name)
 	. "</li>";
     }
   } else {
@@ -509,13 +510,13 @@ function theme_eto_green ($string) {
  * Implementation of hook_block
  */
 function eto_admin_block ($op = 'list', $delta = '', $edit = array()) {
-  switch ($op) 
+  switch ($op)
     {
-      
+
     case 'list':
       $blocks['terms-and-conditions']['info'] = "Site Terms and Conditions";
       $blocks['terms-and-conditions']['cache'] = BLOCK_CACHE_PER_ROLE;
-				      
+
       return $blocks;
       break;
 
@@ -618,11 +619,14 @@ function session_log_display_block_delinquent($target_user) {
     $output .= "<h2>Delinquent Session Logs</h2>";
     $output .= "<ul>";
     foreach ($ids as $id) {
-      $event = sb_appointment_event_load($id);
-      $date = date_make_date($event->start_datetime_utc, "UTC");
-      date_timezone_set($date, timezone_open(user_tz($tz_user)));
-      $title = $event->title . " (" . date_format($date, DATE_FORMAT_ETO_LONG_NO_YEAR) . " at " . date_format($date, TIME_FORMAT_ETO_STANDARD) . ")";
-      $output .= "<li>" . l($title, appointment_url("", $event->appointment_id, $event->appointment_event_id, "log/edit"));
+      $event = sb_appointment_event_load(array(
+                 'appointment_event_id' => $id));
+      if ($event) {
+        $date = date_make_date($event->start_datetime_utc, "UTC");
+        date_timezone_set($date, timezone_open(user_tz($tz_user)));
+        $title = $event->title . " (" . date_format($date, DATE_FORMAT_ETO_LONG_NO_YEAR) . " at " . date_format($date, TIME_FORMAT_ETO_STANDARD) . ")";
+        $output .= "<li>" . l($title, appointment_url("", $event->appointment_id, $event->appointment_event_id, "log/edit"));
+      }
     }
     $output .= "</ul>";
   }
@@ -848,7 +852,7 @@ function get_session_logs($uid = "", $field = "", $tablesort = "") {
   $now = date_make_date(time(), "UTC");
   $now_string = date_format($now, DATE_FORMAT_DATETIME);
 
-  // don't remove cancelled sessions from this because we might cancel the series and still want 
+  // don't remove cancelled sessions from this because we might cancel the series and still want
   // to see the session
   $result = db_query("SELECT sae.appointment_event_id
           FROM sb_appointment_event AS sae
@@ -878,7 +882,7 @@ function sb_tutor_subjects_select ($uid, $option = "") {
   }
 
   if ($obj) {
-    
+
     foreach ($obj->terms as $term) {
       $rows[$term->tid] = $term->name;
     }
@@ -931,7 +935,7 @@ function sb_assignment_load ($uid, $field) {
   }
 
   $result = db_query("SELECT u.uid, u.name, ep.first_name, ep.last_name
-                      FROM {eto_assignments} AS ea 
+                      FROM {eto_assignments} AS ea
                         INNER JOIN {users} AS u ON u.uid=ea." . $field . "
                         LEFT JOIN {" . $profile . "} AS ep ON ep.uid=u.uid
                       WHERE ea." . $mine . "= %d
@@ -978,7 +982,7 @@ function eto_user_load ($uid) {
     return $u;  // nothing to load
   }
   $result = db_query("SELECT *
-                        FROM {%s} 
+                        FROM {%s}
                         WHERE uid = %d",
 		     $table, $u->uid);
   $u->eto_profile = db_fetch_object($result);
@@ -996,10 +1000,10 @@ function sb_tutor_array($option = "", $option2 = "") {
   }
 
   $result = db_query("SELECT u.name, u.uid, etp.first_name, etp.last_name
-                      FROM {users_roles} AS ur 
-                         INNER JOIN {users} AS u ON ur.uid=u.uid 
+                      FROM {users_roles} AS ur
+                         INNER JOIN {users} AS u ON ur.uid=u.uid
                          LEFT JOIN {eto_tutor_profile} AS etp ON etp.uid=u.uid
-                      WHERE ur.rid = 4 
+                      WHERE ur.rid = 4
                       ORDER BY etp.last_name, etp.first_name, u.name");
 
   while ($user = db_fetch_object($result)) {
@@ -1033,10 +1037,10 @@ function sb_student_array($option = "") {
   }
 
   $result = db_query("SELECT u.name, u.uid, esp.first_name, esp.last_name
-                      FROM {users_roles} AS ur 
-                         INNER JOIN {users} AS u ON ur.uid=u.uid 
+                      FROM {users_roles} AS ur
+                         INNER JOIN {users} AS u ON ur.uid=u.uid
                          LEFT JOIN {eto_student_profile} AS esp ON esp.uid=u.uid
-                      WHERE ur.rid = 5 
+                      WHERE ur.rid = 5
                       ORDER BY esp.last_name, esp.first_name, u.name");
 
   while ($user = db_fetch_object($result)) {
@@ -1138,31 +1142,31 @@ function _get_states($item = "") {
   return array_merge($rows, array(
 				  'NA' => '*N/A*',
 				  'AL'=>"Alabama",
-				  'AK'=>"Alaska", 
-				  'AZ'=>"Arizona", 
-				  'AR'=>"Arkansas", 
-				  'CA'=>"California", 
-				  'CO'=>"Colorado", 
-				  'CT'=>"Connecticut", 
-				  'DE'=>"Delaware", 
-				  'DC'=>"District Of Columbia", 
-				  'FL'=>"Florida", 
-				  'GA'=>"Georgia", 
-				  'HI'=>"Hawaii", 
-				  'ID'=>"Idaho", 
-				  'IL'=>"Illinois", 
-				  'IN'=>"Indiana", 
-				  'IA'=>"Iowa", 
-				  'KS'=>"Kansas", 
-				  'KY'=>"Kentucky", 
-				  'LA'=>"Louisiana", 
-				  'ME'=>"Maine", 
-				  'MD'=>"Maryland", 
-				  'MA'=>"Massachusetts", 
-				  'MI'=>"Michigan", 
-				  'MN'=>"Minnesota", 
-				  'MS'=>"Mississippi", 
-				  'MO'=>"Missouri", 
+				  'AK'=>"Alaska",
+				  'AZ'=>"Arizona",
+				  'AR'=>"Arkansas",
+				  'CA'=>"California",
+				  'CO'=>"Colorado",
+				  'CT'=>"Connecticut",
+				  'DE'=>"Delaware",
+				  'DC'=>"District Of Columbia",
+				  'FL'=>"Florida",
+				  'GA'=>"Georgia",
+				  'HI'=>"Hawaii",
+				  'ID'=>"Idaho",
+				  'IL'=>"Illinois",
+				  'IN'=>"Indiana",
+				  'IA'=>"Iowa",
+				  'KS'=>"Kansas",
+				  'KY'=>"Kentucky",
+				  'LA'=>"Louisiana",
+				  'ME'=>"Maine",
+				  'MD'=>"Maryland",
+				  'MA'=>"Massachusetts",
+				  'MI'=>"Michigan",
+				  'MN'=>"Minnesota",
+				  'MS'=>"Mississippi",
+				  'MO'=>"Missouri",
 				  'MT'=>"Montana",
 				  'NE'=>"Nebraska",
 				  'NV'=>"Nevada",
@@ -1172,21 +1176,21 @@ function _get_states($item = "") {
 				  'NY'=>"New York",
 				  'NC'=>"North Carolina",
 				  'ND'=>"North Dakota",
-				  'OH'=>"Ohio", 
-				  'OK'=>"Oklahoma", 
-				  'OR'=>"Oregon", 
-				  'PA'=>"Pennsylvania", 
-				  'RI'=>"Rhode Island", 
-				  'SC'=>"South Carolina", 
+				  'OH'=>"Ohio",
+				  'OK'=>"Oklahoma",
+				  'OR'=>"Oregon",
+				  'PA'=>"Pennsylvania",
+				  'RI'=>"Rhode Island",
+				  'SC'=>"South Carolina",
 				  'SD'=>"South Dakota",
-				  'TN'=>"Tennessee", 
-				  'TX'=>"Texas", 
-				  'UT'=>"Utah", 
-				  'VT'=>"Vermont", 
-				  'VA'=>"Virginia", 
-				  'WA'=>"Washington", 
-				  'WV'=>"West Virginia", 
-				  'WI'=>"Wisconsin", 
+				  'TN'=>"Tennessee",
+				  'TX'=>"Texas",
+				  'UT'=>"Utah",
+				  'VT'=>"Vermont",
+				  'VA'=>"Virginia",
+				  'WA'=>"Washington",
+				  'WV'=>"West Virginia",
+				  'WI'=>"Wisconsin",
 				  'WY'=>"Wyoming"));
 }
 

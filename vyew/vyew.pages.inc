@@ -2,7 +2,7 @@
 
 function vyew_room($uid, $appointment_event_id = "") {
   $output = "";
-  
+
   $u = eto_user_load($uid);
   if ($u) {
     $name = $u->name;
@@ -18,29 +18,30 @@ function vyew_room($uid, $appointment_event_id = "") {
 
   // we can only view this if we own it, we have a relationship, we're an admin, OR it's the sample
   global $user;
-  if ( ($u->name == "sample") 
+  if ( ($u->name == "sample")
        || ($user->uid == $u->uid)
        || (user_access("administer the site"))
        || is_assigned_to($u, $user) ) {
-    
+
     // if we have an appointment, display skype stuff up top
     if ($appointment_event_id) {
-      $event = sb_appointment_event_load($appointment_event_id);
+      $event = sb_appointment_event_load(array(
+                 'appointment_event_id' => $appointment_event_id));
       $appointment = sb_appointment_load($event->appointment_id);
       $tutor_string = _construct_participant_string($appointment, "tutor");
       $student_string = _construct_participant_string($appointment, "student");
       $output .= theme('meeting_participants', $tutor_string, $student_string);
     }
     global $user;
-    
+
     if ($user->uid == $appointment->tutor_uid) {
       // give us a session log link for the end
-      $session_log = "<p>" 
-	. l("When this session is over, click here to record your session log.", 
+      $session_log = "<p>"
+	. l("When this session is over, click here to record your session log.",
 	    appointment_url("", $event->appointment_id, $event->appointment_event_id, "log/edit"))
 	. "</p>";
     }
-    
+
     $room = vyew_room_settings_load($u->uid);
 
     if (strlen($room->meeting_id) > 0) {

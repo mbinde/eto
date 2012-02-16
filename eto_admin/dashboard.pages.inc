@@ -1,7 +1,6 @@
 <?php
 
 function eto_admin_dashboard() {
-  //  sms_user_send(3, 'Hi, Melissa again');
   $output = "";
 
   $output .= "<h2>Today</h2>";

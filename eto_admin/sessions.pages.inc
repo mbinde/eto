@@ -12,12 +12,13 @@ function sb_session_log_display ($arg) {
   $array = sb_parse_arg($arg);
   $appointment_id = $array[0];
   $event_id = $array[1];
-  $event = sb_appointment_event_load($event_id);
+  $event = sb_appointment_event_load(array(
+             'appointment_event_id' => $event_id));
 
   global $user;
 
   // we can only view this if we're the tutor or a student or an admin
-  // 
+  //
   // otherwise, access denied
 
   if (user_access('administer the site') || isa_participant($appointment_id, $user->uid)) {
@@ -58,7 +59,7 @@ function sb_session_log_display ($arg) {
       $output .= theme('eto_basic_field', 'Tutor Split', $log->tutor_split . "%");
       $output .= "\n\n<p></p>\n\n";
     }
-    
+
     $tutor = get_session_log_tutor($log->id);
     $output .= theme('eto_basic_field', "Tutor", l($tutor->name, 'users/' . $tutor->name));
 
@@ -86,7 +87,7 @@ function sb_session_log_display ($arg) {
     date_timezone_set($submitted, timezone_open(user_tz()));
 
     $output .= "<em>Session log submitted on " . date_format($submitted, DATE_FORMAT_ETO_LONG) . " at " . date_format($submitted, TIME_FORMAT_ETO_STANDARD) . "</em><br>";
-    
+
   } else {
     drupal_access_denied();
     exit;
@@ -134,12 +135,12 @@ function session_log_history($target_user = "") {
     $label = "Tutor";
   }
 
-  $head = array(array('data' => 'Title', 'field' => 'sa.title'), 
-		array('data' => 'Date', 'field' => 'sae.start_datetime_utc', 'sort' => 'desc'), 
-		array('data' => 'Subject', 'field' => 'td.name'), 
+  $head = array(array('data' => 'Title', 'field' => 'sa.title'),
+		array('data' => 'Date', 'field' => 'sae.start_datetime_utc', 'sort' => 'desc'),
+		array('data' => 'Subject', 'field' => 'td.name'),
 		array('data' => 'Duration', 'field' => 'esl.duration_final'),
-		array('data' => 'Total Cost', 'field' => 'esl.total_cost'), 
-		$label, 
+		array('data' => 'Total Cost', 'field' => 'esl.total_cost'),
+		$label,
 		"Notes");
 
   if (user_access("is a tutor", $target_user)) {
@@ -163,7 +164,8 @@ function session_log_history($target_user = "") {
     foreach ($ids as $id) {
       $log = sb_session_log_load($id, "event");
       if ($log) {
-	$event = sb_appointment_event_load($id);
+	$event = sb_appointment_event_load(array(
+                   'appointment_event_id' => $id));
 	$date = theme('user_date', $log->start_datetime_utc, $target_user);
 	// different fields for students and tutors
 	$rows[$count][] = $log->title;
@@ -183,7 +185,7 @@ function session_log_history($target_user = "") {
 	  $t = get_session_log_tutor($log->id);
 	  $rows[$count][] = l($t->name, 'users/' . $t->name);
 	}
-	$rows[$count][] = l("[view]", 
+	$rows[$count][] = l("[view]",
 			    appointment_url("", $event->appointment_id, $event->appointment_event_id, "log"));
 	$count ++;
       }
@@ -210,7 +212,8 @@ function session_log_history($target_user = "") {
 function sb_session_log_edit($arg) {
   $array = sb_parse_arg($arg);
   $event_id = $array[1];
-  $event = sb_appointment_event_load($event_id);
+  $event = sb_appointment_event_load(array(
+             'appointment_event_id' => $event_id));
   $output = "";
 
   // see if we can get a log for this; if so, we can only edit if we're an admin
@@ -228,9 +231,9 @@ function sb_session_log_edit($arg) {
     }
 
     drupal_set_title($title);
-    
+
     $output .= "<h2>$title</h2>";
-    
+
     // deliberately comparing versus the start time here in case a session ends early
     $now = date_make_date(time(), 'UTC');
     $start = date_make_date($event->start_datetime_utc, 'UTC');
@@ -287,8 +290,8 @@ function sb_create_session_log_form (&$form_state, $node) {
 			 );
   $form['duration'] = array ('#value' => '<strong>Scheduled Duration: </strong>' . $node->duration . "<br>",
 			     );
-  $form['hourly_rate'] = array ('#value' => '<strong>Scheduled Rate: </strong>$' 
-				. theme('sb_rate', ($node->rate_override ? $node->rate_override : $node->hourly_rate)) 
+  $form['hourly_rate'] = array ('#value' => '<strong>Scheduled Rate: </strong>$'
+				. theme('sb_rate', ($node->rate_override ? $node->rate_override : $node->hourly_rate))
 				. "/hour<br>",
 				);
   if ($node->id) {
@@ -306,7 +309,7 @@ function sb_create_session_log_form (&$form_state, $node) {
   }
   $form['tutor'] = array ('#value' => "<strong>Tutor: </strong>" . $tutor->name . "<br>",
 			  );
-  $form['students'] = array ('#value' => "<strong>Students: </strong>" 
+  $form['students'] = array ('#value' => "<strong>Students: </strong>"
 			     . $students
 			     . "<br>",
 			     );
@@ -360,7 +363,7 @@ function sb_create_session_log_form (&$form_state, $node) {
 				'#title' => 'Select the subject for this session',
 				'#default_value' => $default,
 				);
-				
+
   $form['notes'] = array (
 			  '#type' => 'fieldset',
 			  '#title' => 'Session Notes',
@@ -387,8 +390,9 @@ function sb_create_session_log_form (&$form_state, $node) {
 
 
 function sb_create_session_log_submit_handler($form, &$form_state) {
-  
-  $event = sb_appointment_event_load($form_state['values']['appointment_event_id']);
+
+  $event = sb_appointment_event_load(array(
+             'appointment_event_id' => $form_state['values']['appointment_event_id']));
 
   // make sure this hasn't already been submitted
   if ($event->event_logged == 1) {
@@ -404,25 +408,25 @@ function sb_create_session_log_submit_handler($form, &$form_state) {
     $log['title'] = $event->title;
     $log['hourly_rate_original'] = ($event->hourly_rate_override ? $event->hourly_rate_override : $event->hourly_rate);
     $log['date_submitted_utc'] = date_format($now, DATE_FORMAT_DATETIME);
-    
+
     $log['duration_final'] = $form_state['values']['rates_block']['duration_override'];
     $log['hourly_rate_final'] = sb_rate_validate($form_state['values']['rates_block']['rate_override']);
     $log['subject_tid'] = $form_state['values']['subject_tid'];
-    
+
     $log['total_cost'] = (int) $log['hourly_rate_final'] * ($log['duration_final'] / 60);
-    
+
     $log['private_notes'] = $form_state['values']['private_notes'];
     $log['public_notes'] = $form_state['values']['public_notes'];
 
     // we also need to add the tutor's split for Christine's billing purposes.
     $level = sb_billing_tutor_level_load($event->tutor_uid);
     $log['tutor_split'] = $level->split;
-    
+
     sb_session_log_insert( (object) $log);
     log_accepted($event->appointment_event_id);
-    
+
     drupal_set_message('Your session log has been saved successfully.', 'success');
-    
+
   }
   // this is annoying, why is ahah_helper not clearing storage?
   $form_state['storage'] = array();
@@ -430,7 +434,8 @@ function sb_create_session_log_submit_handler($form, &$form_state) {
 }
 
 function sb_session_log_insert($node) {
-  $event = sb_appointment_event_load($node->appointment_event_id);
+  $event = sb_appointment_event_load(array(
+             'appointment_event_id' => $node->appointment_event_id));
   $participants = sb_appointment_participants_load($event->appointment_id);
 
   db_query("INSERT INTO {eto_session_log}
