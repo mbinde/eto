@@ -311,7 +311,7 @@ function appointments_for_notification() {
       date_timezone_set($end_date, timezone_open(user_tz($u)));
       $end_time = date_format($end_date, 'g:ia (T)');
 
-      if ($u->mail) {
+      if (can_email_student($u)) {
 	$messages[] = array('email' => $u->mail,
 			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
 			    'date' => $app_date,
@@ -327,7 +327,7 @@ function appointments_for_notification() {
 		       "@tutor_id" => $tutor->uid)
 		 );
       }
-      if ($u->eto_profile->email_parent) {
+      if (can_email_parent($u)) {
 	$messages[] = array('email' => $u->eto_profile->email_parent,
 			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
 			    'date' => $app_date,
@@ -358,14 +358,14 @@ function appointments_for_notification() {
 	  date_timezone_set($end_date, timezone_open(user_tz($u)));
 	  $end_time = date_format($end_date, 'g:ia (T)');
 
-	  if ($u->mail) {
+	  if (can_email_student($u)) {
 	    $messages[] = array('email' => $u->mail,
 				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
 				'date' => $app_date,
 				'start_time' => $start_time,
 				'end_time' => $end_time);
 	  }
-	  if ($u->eto_profile->email_parent) {
+	  if (can_email_parent($u)) {
 	    $messages[] = array('email' => $u->eto_profile->email_parent,
 				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
 				'date' => $app_date,
@@ -400,6 +400,29 @@ function appointments_for_notification() {
               WHERE appointment_event_id = %d",
 	     $event->appointment_event_id);
 
+  }
+}
+
+function can_email_tutor($u) {
+  return can_email_student($u);
+}
+
+function can_email_student ($u) {
+  if ($u->mail && (preg_match(EMAIL_REGEX, $u->mail) === 1)) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+function can_email_parent ($u) {
+  if ( ($u->eto_profile->email_parent) && ($u->mail != $u->eto_profile->email_parent) && (preg_match(EMAIL_REGEX, $u->eto_profile->email_parent) === 1)) {
+
+    return TRUE;
+  }
+  else {
+    return FALSE;
   }
 }
 
