@@ -12,6 +12,18 @@ function me() {
   }
 }
 
+function _dst($date) {
+  $dst = date_format($date, 'I');
+  if ($dst == 1) {
+    // subtract an hour
+    $interval = new DateInterval("PT1H");
+    return date_sub($date, $interval);
+  }
+  else {
+    return $date;
+  }
+}
+
 /**
  * implementation of hook_perm()
  */
