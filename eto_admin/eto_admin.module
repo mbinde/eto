@@ -324,40 +324,48 @@ function appointments_for_notification() {
       $end_time = date_format($end_date, 'g:ia (T)');
 
       if (can_email_student($u)) {
-	$messages[] = array('email' => $u->mail,
-			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
-			    'date' => $app_date,
-			    'start_time' => $start_time,
-			    'end_time' => $end_time);
-	watchdog('eto_notifications',
-		 'Emailing student @email (ID @id) for appointment ID @appointment, appointment event ID @event.  Tutor is @tutor_name (@tutor_id).',
-		 array("@email" => $u->mail,
-		       "@id" => $u->uid,
-		       "@appointment" => $appointment->appointment_id,
-		       "@event" => $event->appointment_event_id,
-		       "@tutor_name" => $tutor_name,
-		       "@tutor_id" => $tutor->uid)
-		 );
+	$messages[] = array(
+          'email' => $u->mail,
+          'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+          'tutor_full_name' => $tutor_name,
+          'date' => $app_date,
+          'start_time' => $start_time,
+          'end_time' => $end_time);
+	watchdog(
+          'eto_notifications',
+          'Emailing student @email (ID @id) for appointment ID @appointment, appointment event ID @event.  Tutor is @tutor_name (@tutor_id).',
+          array(
+            "@email" => $u->mail,
+            "@id" => $u->uid,
+            "@appointment" => $appointment->appointment_id,
+            "@event" => $event->appointment_event_id,
+            "@tutor_name" => $tutor_name,
+            "@tutor_id" => $tutor->uid)
+        );
       }
       if (can_email_parent($u)) {
-	$messages[] = array('email' => $u->eto_profile->email_parent,
-			    'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
-			    'date' => $app_date,
-			    'start_time' => $start_time,
-			    'end_time' => $end_time);
+	$messages[] = array(
+          'email' => $u->eto_profile->email_parent,
+          'tutor_full_name' => $tutor_name,
+          'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+          'date' => $app_date,
+          'start_time' => $start_time,
+          'end_time' => $end_time);
 	watchdog('eto_notifications',
-		 'Emailing parent @email (ID @id) for appointment ID @appointment, appointment event ID @event.  Tutor is @tutor_name (@tutor_id).',
-		 array("@email" => $u->eto_profile->email_parent,
-		       "@id" => $u->uid,
-		       "@appointment" => $appointment->appointment_id,
-		       "@event" => $event->appointment_event_id,
-		       "@tutor_name" => $tutor_name,
-		       "@tutor_id" => $tutor->uid)
-		 );
+          'Emailing parent @email (ID @id) for appointment ID @appointment, appointment event ID @event.  Tutor is @tutor_name (@tutor_id).',
+          array(
+            "@email" => $u->eto_profile->email_parent,
+            "@id" => $u->uid,
+            "@appointment" => $appointment->appointment_id,
+            "@event" => $event->appointment_event_id,
+            "@tutor_name" => $tutor_name,
+            "@tutor_id" => $tutor->uid)
+        );
       }
 
 
-    } else if ($appointment->appointment_type == GROUP_SESSION) {
+    }
+    else if ($appointment->appointment_type == GROUP_SESSION) {
 
       for ($i = 1; $i <= 100; $i++) {
 	if ($appointment->{"student_uid_" . $i} > 0) {
@@ -371,18 +379,22 @@ function appointments_for_notification() {
 	  $end_time = date_format($end_date, 'g:ia (T)');
 
 	  if (can_email_student($u)) {
-	    $messages[] = array('email' => $u->mail,
-				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
-				'date' => $app_date,
-				'start_time' => $start_time,
-				'end_time' => $end_time);
+	    $messages[] = array(
+              'email' => $u->mail,
+              'tutor_full_name' => $tutor_name,
+              'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+              'date' => $app_date,
+              'start_time' => $start_time,
+              'end_time' => $end_time);
 	  }
 	  if (can_email_parent($u)) {
-	    $messages[] = array('email' => $u->eto_profile->email_parent,
-				'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
-				'date' => $app_date,
-				'start_time' => $start_time,
-				'end_time' => $end_time);
+	    $messages[] = array(
+              'email' => $u->eto_profile->email_parent,
+              'name' => $u->eto_profile->first_name . " " . $u->eto_profile->last_name,
+              'tutor_full_name' => $tutor_name,
+              'date' => $app_date,
+              'start_time' => $start_time,
+              'end_time' => $end_time);
 	  }
 	}
       }
@@ -390,7 +402,7 @@ function appointments_for_notification() {
     if (count($messages) > 0) {
       //      $tutor_name = ($tutor->eto_profile->first_name ? $tutor->eto_profile->first_name . " " . $tutor->eto_profile->last_name : $tutor->name);
       foreach ($messages as $m) {
-	$params = array('tutor_full_name' => $tutor_name,
+	$params = array('tutor_full_name' => $m['tutor_full_name'],
 			'student_full_name' => $m['name'],
 			'date' => $m['date'],
 			'start_time' => $m['start_time'],
