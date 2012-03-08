@@ -451,6 +451,20 @@ function can_email_parent ($u) {
 }
 
 
+function eto_fetch_logged_sessions() {
+  $result = db_query("SELECT esl.*
+                      FROM {eto_session_log} AS esl
+                      WHERE accounting_flag = 0
+                      ORDER BY start_datetime_utc ASC");
+  $rows = array();
+  $i = 0;
+  while ($row = db_fetch_object($result)) {
+    $rows[] = $row;
+  }
+
+  return $rows;
+}
+
 
 /**********************************************************************
  **********************************************************************

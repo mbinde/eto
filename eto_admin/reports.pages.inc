@@ -25,7 +25,7 @@ function eto_report_form(&$form_state, $node) {
 			 '#type' => 'fieldset',
 			 '#title' => 'Date Range',
 			 );
-  
+
   $form['date']['start'] = array (
 				  '#type' => 'date_popup',
 				  '#date_format' => 'm/d/Y',
@@ -42,7 +42,7 @@ function eto_report_form(&$form_state, $node) {
 				  '#default_value' => "",
 				  '#required' => TRUE,
 				  );
-  
+
 
   $form['target'] = array (
 			   '#type' => 'fieldset',
@@ -167,7 +167,7 @@ function eto_report_form_submit($form, &$form_state) {
 
     $rows[$i][] = $row->private_notes;
     $rows[$i][] = $row->public_notes;
-    
+
     $i++;
   }
 
@@ -206,9 +206,9 @@ function _write_file($filename, $headline, $th, $rows) {
   $dir = file_directory_path() . '/reports';
   file_check_directory($dir, FILE_CREATE_DIRECTORY);
   $path = $dir . "/" . $filename;
-  
+
   $fh = fopen($path,"w");
-  
+
   $s = sputcsv( array($headline), ",", '"', "\r\n");
   fwrite($fh, $s);
 
@@ -295,13 +295,10 @@ function eto_logged_sessions() {
   // else
   $output = '';
 
-  $result = db_query("SELECT esl.*
-                      FROM {eto_session_log} AS esl
-                      WHERE accounting_flag = 0
-                      ORDER BY start_datetime_utc ASC");
+  $sessions = eto_fetch_logged_sessions();
+
   $rows = array();
-  $i = 0;
-  while ($row = db_fetch_object($result)) {
+  foreach ($sessions as $row) {
     $date = date_make_date($row->start_datetime_utc, "UTC");
     date_timezone_set($date, timezone_open(user_tz($user)));
     $rows[$i][] = date_format($date, "m/d/Y g:ia");
@@ -331,7 +328,7 @@ function eto_logged_sessions() {
 
   $th = array( 'Date', 'Tutor', 'Student(s)', 'Subject', 'Duration', 'Logged?' );
 
-  
+
   $output .= '<H2>Logged Sessions</h2>';
   $output .= '<p>The sessions below have not been entered into the accounting system.  After you have entered them, check the checkbox then click "Mark as Logged" and they will be removed from the list.</p>';
   $output .= '<form action="/eto/admin/logged-sessions"  accept-charset="UTF-8" method="post" id="sb-logged-sessions">';

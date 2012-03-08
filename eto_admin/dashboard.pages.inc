@@ -22,7 +22,7 @@ function eto_admin_dashboard() {
   $output .= "<h2>Billing</h2>";
   $output .= "<ul>";
   $output .= "<li>" . l("Generate Reports", "eto/admin/reports") . "</li>\n";
-  $output .= "<li>" . l("Logged Sessions", "eto/admin/logged-sessions") . "</li>\n";
+  $output .= "<li>" . l("Logged Sessions: " . count(eto_fetch_logged_sessions()), "eto/admin/logged-sessions") . "</li>\n";
   $output .= "</ul>";
 
 
@@ -127,7 +127,7 @@ function eto_tutors_today() {
   } else {
     $output .= "<p><em>No tutors have sessions today.</em></p>\n";
   }
-  return $output;  
+  return $output;
 }
 
 
@@ -145,7 +145,7 @@ function eto_sessions_today() {
       date_timezone_set($start, timezone_open(user_tz()));
       date_timezone_set($end, timezone_open(user_tz()));
       $participants = sb_appointment_participants_load($s->appointment_id, "names");
-      $output .= "<li>" 
+      $output .= "<li>"
 	. l("[view] " . $s->title, appointment_url("", $s->appointment_id, $s->appointment_event_id)) . " "
 	. "from " . date_format($start, TIME_FORMAT_ETO_STANDARD) . " - " . date_format($end, TIME_FORMAT_ETO_STANDARD) . ". "
 	. "tutor: " . l($u->name, "users/" . $u->name)  . ". "
@@ -156,7 +156,7 @@ function eto_sessions_today() {
   } else {
     $output .= "<p><em>No sessions today.</em></p>\n";
   }
-  return $output;  
+  return $output;
 }
 
 
