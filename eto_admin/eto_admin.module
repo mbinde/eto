@@ -663,7 +663,7 @@ function session_log_display_block_delinquent($target_user) {
   $ids = get_delinquent_session_logs($target_user->uid);
 
   if ($ids) {
-    $output .= "<h2>Delinquent Session Logs</h2>";
+    $output .= "<h2>Unlogged Sessions</h2>";
     $output .= "<ul>";
     foreach ($ids as $id) {
       $event = sb_appointment_event_load(array(

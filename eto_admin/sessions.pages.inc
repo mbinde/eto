@@ -307,45 +307,38 @@ function sb_create_session_log_form (&$form_state, $node) {
     $tutor = eto_user_load($node->tutor_uid);
     $students = implode (", ", sb_appointment_participants_load($node->appointment_id, "names"));
   }
-  $form['tutor'] = array ('#value' => "<strong>Tutor: </strong>" . $tutor->name . "<br>",
-			  );
-  $form['students'] = array ('#value' => "<strong>Students: </strong>"
-			     . $students
-			     . "<br>",
-			     );
+  $form['tutor'] = array (
+    '#value' => "<strong>Tutor: </strong>" . $tutor->name . "<br>",
+  );
+  $form['students'] = array (
+    '#value' => "<strong>Students: </strong>"
+    . $students
+    . "<br>",
+  );
   $form['rates_block'] = array(
-			 '#type' => 'fieldset',
-			 '#title' => 'Rate and Duration Overrides',
-			 '#description' => '<strong>Cost: $' . sprintf('%.2f', ($default['rate'] / 100) * ($default['duration'] / 60)) . "</strong>",
-			 '#prefix' => '<div id="rates-block-wrapper">',
-			 '#suffix' => "</div>",
-			 '#tree' => TRUE,
-			 );
-  $form['rates_block']['duration_override'] = array ('#type' => 'textfield',
-					       '#size' => 4,
-					       '#title' => "Actual Duration",
-					       '#field_suffix' => 'minutes',
-					       '#description' => "If the actual duration was different, please put it here",
-					       '#default_value' => $default['duration'],
-					       '#ahah' => array(
-								'event' => 'change',
-								'path' => ahah_helper_path(array('rates_block')),
-								'wrapper' => 'rates-block-wrapper',
-								),
-					       );
-  $form['rates_block']['rate_override'] = array ('#type' => 'textfield',
-					   '#title' => "Actual Rate",
-					   '#size' => 4,
-					   '#description' => "If the actual rate was different, please put it here",
-					   '#field_prefix' => '$',
-					   '#field_suffix' => '/hour',
-					   '#default_value' => theme('sb_rate', $default['rate']),
-					   '#ahah' => array(
-							    'event' => 'change',
-							    'path' => ahah_helper_path(array('rates_block')),
-							    'wrapper' => 'rates-block-wrapper',
-							    ),
-					   );
+    '#type' => 'fieldset',
+    '#title' => 'Rate and Duration Overrides',
+    '#prefix' => '<div id="rates-block-wrapper">',
+    '#suffix' => "</div>",
+    '#tree' => TRUE,
+  );
+  $form['rates_block']['duration_override'] = array (
+    '#type' => 'textfield',
+    '#size' => 4,
+    '#title' => "Actual Duration",
+    '#field_suffix' => 'minutes',
+    '#description' => "If the actual duration was different, please put it here",
+    '#default_value' => $default['duration'],
+  );
+  $form['rates_block']['rate_override'] = array (
+    '#type' => 'textfield',
+    '#title' => "Actual Rate",
+    '#size' => 4,
+    '#description' => "If the actual rate was different, please put it here",
+    '#field_prefix' => '$',
+    '#field_suffix' => '/hour',
+    '#default_value' => theme('sb_rate', $default['rate']),
+  );
   $subjects = sb_tutor_subjects_select ($node->tutor_uid, "Unspecified");
   if (count($subjects == 2)) {
     $default = array_pop(array_keys($subjects));
