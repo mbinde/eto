@@ -270,10 +270,10 @@ function sb_create_session_log_form (&$form_state, $node) {
   } else {
     if ($node->hourly_rate_final) {
       $default['rate'] = $node->hourly_rate_final;
-    } else if ($node->hourly_rate_original) {
-      $default['rate'] = $node->hourly_rate_original;
     } else if ($node->hourly_rate_override) {
       $default['rate'] = $node->hourly_rate_override;
+    } else if ($node->hourly_rate_original) {
+      $default['rate'] = $node->hourly_rate_original;
     } else {
       $default['rate'] = $node->hourly_rate;
     }
