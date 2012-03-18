@@ -318,6 +318,7 @@ function appointments_for_notification() {
       $date = date_make_date($event->start_datetime_utc, "UTC");
       date_timezone_set($date, timezone_open(user_tz($u)));
       $app_date = date_format($date, DATE_FORMAT_ETO_LONG_NO_YEAR);
+      $short_app_date = date_format($date, DATE_FORMAT_ETO_ABBREVIATED);
       $start_time = date_format($date, 'g:ia');
       $end_date = date_make_date($event->end_datetime_utc, "UTC");
       date_timezone_set($end_date, timezone_open(user_tz($u)));
@@ -341,6 +342,16 @@ function appointments_for_notification() {
             "@event" => $event->appointment_event_id,
             "@tutor_name" => $tutor_name,
             "@tutor_id" => $tutor->uid)
+        );
+      }
+      if (can_text($u)) {
+        watchdog('eto_notifications',
+          'Texting reminder to student @u_name (@u_id)',
+          array('@u_name' => $u->name,
+            '@u_id' => $u->uid));
+
+        $texts[] = array ('uid' => $u->uid,
+                   'message' => "ETO session reminder: $short_app_date $start_time - $end_time",
         );
       }
       if (can_email_parent($u)) {
@@ -387,6 +398,16 @@ function appointments_for_notification() {
               'start_time' => $start_time,
               'end_time' => $end_time);
 	  }
+          if (can_text($u)) {
+            watchdog('eto_notifications',
+              'Texting reminder to student @u_name (@u_id)',
+              array('@u_name' => $u->name,
+                '@u_id' => $u->uid));
+
+            $texts[] = array ('uid' => $u->uid,
+                       'message' => "ETO session reminder: $short_app_date $start_time - $end_time",
+            );
+          }
 	  if (can_email_parent($u)) {
 	    $messages[] = array(
               'email' => $u->eto_profile->email_parent,
@@ -418,6 +439,12 @@ function appointments_for_notification() {
       }
     }
 
+    if (count($texts) > 0) {
+      foreach ($texts as $t) {
+	sms_user_send($t['uid'], $t['message']);
+      }
+    }
+
     // mark as notified
     db_query("UPDATE {sb_appointment_event} SET
               notification_sent = 1
@@ -433,6 +460,16 @@ function can_email_tutor($u) {
 
 function can_email_student ($u) {
   if ($u->mail && (preg_match(EMAIL_REGEX, $u->mail) === 1)) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+function can_text($u) {
+  $method = notifications_user_setting('send_method', $u);
+  if (($method == 'sms') && ($u->sms_user[0]['number'] > 0) && ($u->sms_user[0]['status'] == 2)) {
     return TRUE;
   }
   else {
