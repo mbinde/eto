@@ -270,8 +270,8 @@ function sb_create_session_log_form (&$form_state, $node) {
   } else {
     if ($node->hourly_rate_final) {
       $default['rate'] = $node->hourly_rate_final;
-    } else if ($node->hourly_rate_override) {
-      $default['rate'] = $node->hourly_rate_override;
+    } else if ($node->rate_override) {
+      $default['rate'] = $node->rate_override;
     } else if ($node->hourly_rate_original) {
       $default['rate'] = $node->hourly_rate_original;
     } else {
@@ -399,7 +399,7 @@ function sb_create_session_log_submit_handler($form, &$form_state) {
     $log['start_datetime_utc'] = $event->start_datetime_utc;
     $log['duration_original'] = $event->duration;
     $log['title'] = $event->title;
-    $log['hourly_rate_original'] = ($event->hourly_rate_override ? $event->hourly_rate_override : $event->hourly_rate);
+    $log['hourly_rate_original'] = ($event->rate_override ? $event->rate_override : $event->hourly_rate);
     $log['date_submitted_utc'] = date_format($now, DATE_FORMAT_DATETIME);
 
     $log['duration_final'] = $form_state['values']['rates_block']['duration_override'];
